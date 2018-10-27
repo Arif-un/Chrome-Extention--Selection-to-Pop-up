@@ -1,0 +1,173 @@
+/* Author : Muhammad Arif Uddin
+GitHub : GitHub.com/arif-un */
+
+body {
+    background-color: rgb(247, 247, 247);
+    font-family: 'Varela Round', sans-serif;
+}
+
+.container {
+    margin: 25px auto 0 auto;
+    border-radius: 10px;
+    background-color: white;
+    min-height: 500px;
+    width: 600px;
+    padding: 10px;
+    -webkit-box-shadow: 0px 0px 51px -6px rgba(0, 0, 0, 0.12);
+    -moz-box-shadow: 0px 0px 51px -6px rgba(0, 0, 0, 0.12);
+    box-shadow: 0px 0px 51px -6px rgba(0, 0, 0, 0.12);
+}
+
+.content {
+    border-radius: 10px;
+    margin: 30px 15px 40px 15px;
+    padding: 15px;
+    -webkit-box-shadow: 0px 0px 14px -2px rgba(0, 0, 0, 0.26);
+    -moz-box-shadow: 0px 0px 14px -2px rgba(0, 0, 0, 0.26);
+    box-shadow: 0px 0px 14px -2px rgba(0, 0, 0, 0.26);
+
+    transition: all .4s;
+}
+
+.content:hover {
+    -webkit-box-shadow: 0px 0px 55px -10px rgba(0, 0, 0, 0.46);
+    -moz-box-shadow: 0px 0px 55px -10px rgba(0, 0, 0, 0.46);
+    box-shadow: 0px 0px 55px -10px rgba(0, 0, 0, 0.46);
+
+    transform: scale(1.002);
+}
+
+#save-alrt {
+    background-color: black;
+    opacity: 0.8;
+    display: block;
+    font-size: 14px;
+    color: white;
+    border-radius: 10px;
+    position: fixed;
+    bottom: 50px;
+    right: -80px;
+    padding: 17px;
+    transition: right .5s ease;
+}
+
+.icon {
+    background: rgb(75, 75, 75);
+    border-radius: 7px;
+    padding: 5px;
+    margin: 5px;
+
+}
+
+hr {
+    height: 1px;
+    color: rgb(231, 231, 231);
+    background-color: rgb(230, 230, 230);
+    border: none;
+}
+
+p {
+    font-size: 14px;
+}
+
+.inline {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+select {
+    font-family: 'Varela Round', sans-serif;
+    padding: 5px;
+    border-radius: 5px;
+    outline: none;
+}
+
+select:hover {
+    border: 1px solid rgb(124, 124, 124)
+}
+
+.translate-radios {
+    margin-left: 110px;
+}
+
+button {
+    font-family: 'Varela Round', sans-serif;
+    background-color: rgb(255, 255, 255);
+    margin: 0 0 0 250px;
+    padding: 10px 20px 10px 20px;
+    border-radius: 5px;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    transition: box-shadow .4s ease;
+
+    -webkit-box-shadow: 0px 0px 11px 2px rgba(0, 0, 0, 0.13);
+    -moz-box-shadow: 0px 0px 11px 2px rgba(0, 0, 0, 0.13);
+    box-shadow: 0px 0px 11px 2px rgba(0, 0, 0, 0.13);
+}
+
+button:hover {
+    -webkit-box-shadow: 0px 0px 21px 1px rgba(0, 0, 0, 0.27);
+    -moz-box-shadow: 0px 0px 21px 1px rgba(0, 0, 0, 0.27);
+    box-shadow: 0px 0px 21px 1px rgba(0, 0, 0, 0.27);
+}
+
+button:active {
+    border: .7px solid lightgray;
+}
+
+[type="radio"]:checked,
+[type="radio"]:not(:checked) {
+    position: absolute;
+    left: -9999px;
+}
+
+[type="radio"]:checked+label,
+[type="radio"]:not(:checked)+label {
+    position: relative;
+    padding-left: 28px;
+    cursor: pointer;
+    line-height: 20px;
+    display: inline-block;
+    color: #666;
+}
+
+[type="radio"]:checked+label:before,
+[type="radio"]:not(:checked)+label:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 18px;
+    height: 18px;
+    border: 1px solid #ddd;
+    border-radius: 100%;
+    background: #fff;
+}
+
+[type="radio"]:checked+label:after,
+[type="radio"]:not(:checked)+label:after {
+    content: '';
+    width: 12px;
+    height: 12px;
+    background: rgb(68, 68, 68);
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    border-radius: 100%;
+    -webkit-transition: all 0.2s ease;
+    transition: all 0.2s ease;
+}
+
+[type="radio"]:not(:checked)+label:after {
+    opacity: 0;
+    -webkit-transform: scale(0);
+    transform: scale(0);
+}
+
+[type="radio"]:checked+label:after {
+    opacity: 1;
+    -webkit-transform: scale(1);
+    transform: scale(1);
+}

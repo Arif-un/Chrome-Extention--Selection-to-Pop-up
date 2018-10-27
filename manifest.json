@@ -1,0 +1,28 @@
+{
+  "update_url": "https://clients2.google.com/service/update2/crx",
+  "name": "Selection To PopUp",
+  "version": "1.0",
+  "manifest_version": 2,
+  "description": "Perform easy actions like Search, Copy, Translate, Currency Convert on selected text.",
+
+  "permissions": ["http://*/*", "https://*/*", "ftp://*/*", "storage", "tabs"],
+  "content_scripts": [{
+    "matches": [
+      "<all_urls>"
+    ],
+    "js": ["application.js"]
+  }],
+  "options_page": "options.html",
+  "web_accessible_resources": [
+    "data/*.png", "options.html", "option.css"
+  ],
+  "icons": {
+    "16": "data/icons/select-logo-16.png",
+    "19": "data/icons/select-logo-19.png",
+    "32": "data/icons/select-logo-32.png",
+    "38": "data/icons/select-logo-38.png",
+    "48": "data/icons/select-logo-48.png",
+    "128": "data/icons/select-logo-128.png"
+  }
+
+}
