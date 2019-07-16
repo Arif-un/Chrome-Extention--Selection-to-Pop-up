@@ -1,16 +1,13 @@
 /* Author : Muhammad Arif Uddin
 GitHub : GitHub.com/arif-un */
 
-let pageX;
-let pageY;
+let pageX, pageY, primary_tran, primary_curr, popAllow;
 let show = false;
 let target = false;
 let selection = "";
 let lang = ["Afrikaans", "Albanian", "Arabic", "Azerbaijani", "Basque", "Bengali", "Belarusian", "Bulgarian", "Catalan", "Chinese Simplified", "Chinese Traditional", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Filipino", "Finnish", "French", "Galician", "Georgian", "German", "Greek", "Gujarati", "Haitian Creole", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Irish", "Italian", "Japanese", "Kannada", "Korean", "Latin", "Latvian", "Lithuanian", "Macedonian", "Malay", "Maltese", "Norwegian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Slovak", "Slovenian", "Spanish", "Swahili", "Swedish", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Urdu", "Vietnamese", "Welsh", "Yiddish"];
 let langCode = ["af", "sq", "ar", "az", "eu", "bn", "be", "bg", "ca", "zh-CN", "zh-TW", "hr", "cs", "da", "nl", "en", "eo", "et", "tl", "fi", "fr", "gl", "ka", "de", "el", "gu", "ht", "iw", "hi", "hu", "is", "id", "ga", "it", "ja", "kn", "ko", "la", "lv", "lt", "mk", "ms", "mt", "no", "fa", "pl", "pt", "ro", "ru", "sr", "sk", "sl", "es", "sw", "sv", "ta", "te", "th", "tr", "uk", "ur", "vi", "cy", "yi"];
-let primary_tran;
-let primary_curr;
-let popAllow;
+
 
 //read config
 chrome.storage.sync.get(["primaryTranslate"], result => {
@@ -25,7 +22,7 @@ chrome.storage.sync.get(["pop_win"], result => {
 
 // add style
 let css =
-  `#__tooltip::after {content: "";position: absolute;top: 100%;left: 50%;margin-left: -5px;border-width: 8px;border-style: solid;border-color: rgb(43, 43, 43) transparent transparent transparent;} #__tooltip > a > img{padding:7px;border-radius:5px} #__tooltip > a > img:hover{background:rgb(55,55,55)} 
+  `#____tooltip::after {content: "";position: absolute;top: 100%;left: 50%;margin-left: -5px;border-width: 8px;border-style: solid;border-color: rgb(43, 43, 43) transparent transparent transparent;} #____tooltip > a > img{padding:7px;border-radius:5px} #____tooltip > a > img:hover{background:rgb(55,55,55)} 
 
   @-webkit-keyframes fadeIn {
     from { opacity: 0; }
@@ -46,7 +43,7 @@ document.getElementsByTagName("head")[0].appendChild(style);
 
 // popup element
 let div = document.createElement("div");
-div.id = "__tooltip";
+div.id = "____tooltip";
 div.innerHTML = `<a id="__search"><img src='${chrome.runtime.getURL("data/search.png")}'></a>
                  <a id="__copy" ><img src='${chrome.runtime.getURL("data/copy.png")}'></a>
                  <a id="__translate" ><img src='${chrome.runtime.getURL("data/translate.png")}'></a>
@@ -58,8 +55,8 @@ div.style.position = "absolute";
 div.style.height = "45px !important";
 div.style.color = "white";
 div.style.padding = "3px";
-div.style.borderRadius = "10px";
-div.style.background = "rgb(43, 43, 43)";
+div.style.borderRadius = "8px";
+div.style.background = "rgb(40, 40, 40)";
 div.style.opacity = "0";
 div.style.animation = "fadeIn 0.5s";
 
@@ -113,8 +110,6 @@ transltPopUp.style.transition = "display 1s"
 
 document.body.appendChild(transltPopUp);
 
-
-
 // Show pop up
 window.addEventListener("mouseup", function (event) {
   selection = getSelectedTxt();
@@ -123,7 +118,7 @@ window.addEventListener("mouseup", function (event) {
     pageX = event.x - 100;
     event.screenY < 150 ? pageY = event.pageY + 20 : pageY = event.pageY - 75;
   }
-//show pop
+  //show pop
   if (selection != "") {
     div.style.opacity = "0.9";
     div.style.display = "block";
@@ -133,7 +128,7 @@ window.addEventListener("mouseup", function (event) {
 
     show = true;
   } else if (selection == "" && show) {
-    document.getElementById("__tooltip").style.display = "none";
+    document.getElementById("____tooltip").style.display = "none";
     currencyPopUp.style.display = "none";
     transltPopUp.style.display = "none";
     show = false;
@@ -244,10 +239,10 @@ document.getElementById('__translate').addEventListener('click', () => {
 
 
 // tooltip active
-document.getElementById('__tooltip').addEventListener("mouseover", function (event) {
+document.getElementById('____tooltip').addEventListener("mouseover", function (event) {
   target = true;
 });
-document.getElementById('__tooltip').addEventListener("mouseleave", function (event) {
+document.getElementById('____tooltip').addEventListener("mouseleave", function (event) {
   target = false;
 });
 
