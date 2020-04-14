@@ -1,7 +1,7 @@
 {
   "update_url": "https://clients2.google.com/service/update2/crx",
   "name": "Selection To PopUp",
-  "version": "1.0",
+  "version": "1.1",
   "manifest_version": 2,
   "description": "Perform easy actions like Search, Copy, Translate on selected text.",
   "permissions": [
