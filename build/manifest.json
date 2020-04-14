@@ -3,7 +3,7 @@
   "name": "Selection To PopUp",
   "version": "1.0",
   "manifest_version": 2,
-  "description": "Perform easy actions like Search, Copy, Translate, Currency Convert on selected text.",
+  "description": "Perform easy actions like Search, Copy, Translate on selected text.",
   "permissions": [
     "http://*/*",
     "https://*/*",

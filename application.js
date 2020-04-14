@@ -20,98 +20,39 @@ chrome.storage.sync.get(["pop_win"], result => {
   popAllow = result.pop_win == undefined ? false : result.pop_win;
 });
 
-// add style
-let css =
-  `#____tooltip::after {content: "";position: absolute;top: 100%;left: 50%;margin-left: -5px;border-width: 8px;border-style: solid;border-color: rgb(43, 43, 43) transparent transparent transparent;} #____tooltip > a > img{padding:7px;border-radius:5px} #____tooltip > a > img:hover{background:rgb(55,55,55)} 
-
-  @-webkit-keyframes fadeIn {
-    from { opacity: 0; }
-      to { opacity: 0.9; }
-}  
-@keyframes fadeIn {
-    from { opacity: 0; }
-      to { opacity: 0.9; }
-}`;
-let style = document.createElement("style");
-
-if (style.styleSheet) {
-  style.styleSheet.cssText = css;
-} else {
-  style.appendChild(document.createTextNode(css));
-}
-document.getElementsByTagName("head")[0].appendChild(style);
 
 // popup element
 let div = document.createElement("div");
 div.id = "____tooltip";
-div.innerHTML = `<a id="__search"><img src='${chrome.runtime.getURL("data/search.png")}'></a>
-                 <a id="__copy" ><img src='${chrome.runtime.getURL("data/copy.png")}'></a>
-                 <a id="__translate" ><img src='${chrome.runtime.getURL("data/translate.png")}'></a>
-                 <a id="__currency" ><img src='${chrome.runtime.getURL("data/currency_tk.png")}'></a>`;
+div.innerHTML = `<a id="__search"><img title="Search" src='${chrome.runtime.getURL("data/search.png")}'></a>
+                 <a id="__copy" ><img title="Copy" src='${chrome.runtime.getURL("data/copy.png")}'></a>
+                 <a id="__translate" ><img title="Translate" src='${chrome.runtime.getURL("data/translate.png")}'></a>
+                `;
 
-div.style.display = "none";
-div.style.zIndex = "99999999";
-div.style.position = "absolute";
-div.style.height = "45px !important";
-div.style.color = "white";
-div.style.padding = "3px";
-div.style.borderRadius = "8px";
-div.style.background = "rgb(40, 40, 40)";
-div.style.opacity = "0";
-div.style.animation = "fadeIn 0.5s";
+/*  <a id="__currency" ><img src='${chrome.runtime.getURL("data/currency_tk.png")}'></a> */
 
 document.body.appendChild(div);
 
 // Copy Alert element
-let CopyAlert = document.createElement("div");
+const CopyAlert = document.createElement("div");
 CopyAlert.id = "__cpyAlrt";
 CopyAlert.innerHTML = `Copied !`;
-CopyAlert.style.display = "block";
-CopyAlert.style.zIndex = "99999999";
-CopyAlert.style.position = "fixed";
-CopyAlert.style.color = "white";
-CopyAlert.style.padding = "15px 30px 15px 30px";
-CopyAlert.style.borderRadius = "10px";
-CopyAlert.style.background = "rgb(43, 43, 43)";
-CopyAlert.style.opacity = "0.9";
-CopyAlert.style.bottom = 30 + "px";
-CopyAlert.style.right = -150 + "px";
-CopyAlert.style.transition = "right 0.5s"
 
 document.body.appendChild(CopyAlert);
 
-let currencyPopUp = document.createElement("div");
+const currencyPopUp = document.createElement("div");
 currencyPopUp.id = "__cuncy_pop";
-currencyPopUp.style.display = "none";
-currencyPopUp.style.zIndex = "99999999";
-currencyPopUp.style.position = "absolute";
-currencyPopUp.style.color = "white";
-currencyPopUp.style.padding = "10px";
-currencyPopUp.style.borderRadius = "10px";
-currencyPopUp.style.background = "rgb(43, 43, 43)";
-currencyPopUp.style.opacity = "0.9";
-currencyPopUp.style.transition = "display 1s"
+
 
 document.body.appendChild(currencyPopUp);
 
-let transltPopUp = document.createElement("div");
+const transltPopUp = document.createElement("div");
 transltPopUp.id = "__trns_pop";
-transltPopUp.style.display = "none";
-transltPopUp.style.maxWidth = "500px";
-transltPopUp.style.zIndex = "99999999";
-transltPopUp.style.position = "absolute";
-transltPopUp.style.color = "white";
-transltPopUp.style.fontSize = "16px";
-transltPopUp.style.padding = "10px";
-transltPopUp.style.borderRadius = "10px";
-transltPopUp.style.background = "rgb(43, 43, 43)";
-transltPopUp.style.opacity = "0.9";
-transltPopUp.style.transition = "display 1s"
 
 document.body.appendChild(transltPopUp);
 
 // Show pop up
-window.addEventListener("mouseup", function (event) {
+window.addEventListener("mouseup", (event) => {
   selection = getSelectedTxt();
   // get x y pos
   if (event.button == 0 && !target) {
@@ -121,7 +62,7 @@ window.addEventListener("mouseup", function (event) {
   //show pop
   if (selection != "") {
     div.style.opacity = "0.9";
-    div.style.display = "block";
+    div.style.display = "flex";
 
     div.style.top = pageY + "px";
     div.style.left = pageX + "px";
@@ -153,7 +94,7 @@ document.getElementById('__copy').addEventListener('click', () => {
   }, 2000);
 });
 
-//Currency Action
+/* //Currency Action
 document.getElementById('__currency').addEventListener('click', () => {
   let currency_from = selection.match(/[a-z]+/gi);
   let val = selection.match(/\d+|[.]/g);
@@ -205,7 +146,7 @@ let crrencyErorMsg = () => {
   currencyPopUp.style.display = "block";
   setTimeout(() => currencyPopUp.style.display = "none", 1000);
 }
-
+ */
 //translate action 
 document.getElementById('__translate').addEventListener('click', () => {
 
