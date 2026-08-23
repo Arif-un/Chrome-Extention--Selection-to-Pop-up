@@ -1,0 +1,97 @@
+/** Language name + ISO code pairs used by translate / dictionary selectors. */
+export const LANGS: { code: string; name: string }[] = [
+  { code: 'af', name: 'Afrikaans' },
+  { code: 'sq', name: 'Albanian' },
+  { code: 'ar', name: 'Arabic' },
+  { code: 'az', name: 'Azerbaijani' },
+  { code: 'eu', name: 'Basque' },
+  { code: 'bn', name: 'Bengali' },
+  { code: 'be', name: 'Belarusian' },
+  { code: 'bg', name: 'Bulgarian' },
+  { code: 'ca', name: 'Catalan' },
+  { code: 'zh-CN', name: 'Chinese (Simplified)' },
+  { code: 'zh-TW', name: 'Chinese (Traditional)' },
+  { code: 'hr', name: 'Croatian' },
+  { code: 'cs', name: 'Czech' },
+  { code: 'da', name: 'Danish' },
+  { code: 'nl', name: 'Dutch' },
+  { code: 'en', name: 'English' },
+  { code: 'eo', name: 'Esperanto' },
+  { code: 'et', name: 'Estonian' },
+  { code: 'tl', name: 'Filipino' },
+  { code: 'fi', name: 'Finnish' },
+  { code: 'fr', name: 'French' },
+  { code: 'gl', name: 'Galician' },
+  { code: 'ka', name: 'Georgian' },
+  { code: 'de', name: 'German' },
+  { code: 'el', name: 'Greek' },
+  { code: 'gu', name: 'Gujarati' },
+  { code: 'ht', name: 'Haitian Creole' },
+  { code: 'iw', name: 'Hebrew' },
+  { code: 'hi', name: 'Hindi' },
+  { code: 'hu', name: 'Hungarian' },
+  { code: 'is', name: 'Icelandic' },
+  { code: 'id', name: 'Indonesian' },
+  { code: 'ga', name: 'Irish' },
+  { code: 'it', name: 'Italian' },
+  { code: 'ja', name: 'Japanese' },
+  { code: 'kn', name: 'Kannada' },
+  { code: 'ko', name: 'Korean' },
+  { code: 'la', name: 'Latin' },
+  { code: 'lv', name: 'Latvian' },
+  { code: 'lt', name: 'Lithuanian' },
+  { code: 'mk', name: 'Macedonian' },
+  { code: 'ms', name: 'Malay' },
+  { code: 'mt', name: 'Maltese' },
+  { code: 'no', name: 'Norwegian' },
+  { code: 'fa', name: 'Persian' },
+  { code: 'pl', name: 'Polish' },
+  { code: 'pt', name: 'Portuguese' },
+  { code: 'ro', name: 'Romanian' },
+  { code: 'ru', name: 'Russian' },
+  { code: 'sr', name: 'Serbian' },
+  { code: 'sk', name: 'Slovak' },
+  { code: 'sl', name: 'Slovenian' },
+  { code: 'es', name: 'Spanish' },
+  { code: 'sw', name: 'Swahili' },
+  { code: 'sv', name: 'Swedish' },
+  { code: 'ta', name: 'Tamil' },
+  { code: 'te', name: 'Telugu' },
+  { code: 'th', name: 'Thai' },
+  { code: 'tr', name: 'Turkish' },
+  { code: 'uk', name: 'Ukrainian' },
+  { code: 'ur', name: 'Urdu' },
+  { code: 'vi', name: 'Vietnamese' },
+  { code: 'cy', name: 'Welsh' },
+  { code: 'yi', name: 'Yiddish' },
+]
+
+export function langName(code: string): string {
+  return LANGS.find((l) => l.code === code)?.name ?? code
+}
+
+/** Currencies with accurate ECB rates from frankfurter.dev (primary source). */
+export const FRANKFURTER_CURRENCIES = [
+  'AUD', 'BRL', 'CAD', 'CHF', 'CNY', 'CZK', 'DKK', 'EUR', 'GBP', 'HKD',
+  'HUF', 'IDR', 'ILS', 'INR', 'ISK', 'JPY', 'KRW', 'MXN', 'MYR', 'NOK',
+  'NZD', 'PHP', 'PLN', 'RON', 'SEK', 'SGD', 'THB', 'TRY', 'USD', 'ZAR',
+]
+
+/**
+ * Currencies offered in the UI. Anything outside FRANKFURTER_CURRENCIES (e.g.
+ * BDT, AED, PKR) is served by the open.er-api.com fallback. Curated common set,
+ * not the full 160+ er-api list — add codes here as needed.
+ */
+export const CURRENCIES = [
+  ...FRANKFURTER_CURRENCIES,
+  'AED', 'ARS', 'BDT', 'BHD', 'CLP', 'COP', 'EGP', 'KWD', 'LKR', 'MAD',
+  'NGN', 'NPR', 'OMR', 'PKR', 'QAR', 'RUB', 'SAR', 'TWD', 'UAH', 'VND',
+].sort()
+
+export function isSupportedCurrency(code: string): boolean {
+  return CURRENCIES.includes(code.toUpperCase())
+}
+
+export function isFrankfurterCurrency(code: string): boolean {
+  return FRANKFURTER_CURRENCIES.includes(code.toUpperCase())
+}

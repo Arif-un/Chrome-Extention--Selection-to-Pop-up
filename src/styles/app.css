@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+@import './tooltip-theme.css';
+@source '../**/*.{ts,tsx,html}';
+
+:root {
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+}

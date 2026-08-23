@@ -1,0 +1,39 @@
+{
+  "name": "selection-to-popup",
+  "version": "2.0.0",
+  "description": "Perform quick actions (Search, Copy, Translate, Dictionary, Currency, custom actions) on selected text.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Muhammad Arif Uddin",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "zip": "npm run build && cd dist && zip -r ../selection-to-popup.zip . && cd ..",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,html}\"",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "preact": "^10.24.3"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.7.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/chrome": "^0.0.287",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^9.15.0",
+    "eslint-config-prettier": "^9.1.0",
+    "jsdom": "^25.0.1",
+    "prettier": "^3.4.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.7.2",
+    "vite": "^8.0.0",
+    "vitest": "^2.1.6"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "esbuild@0.21.5": true
+  }
+}

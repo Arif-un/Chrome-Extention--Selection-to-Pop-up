@@ -1,0 +1,50 @@
+/* Themeable selection popup. Values come from CSS variables set inline from
+   the user's Appearance settings (see lib/appearance.ts). Shared by the in-page
+   tooltip (shadow DOM) and the options live preview. */
+
+.stp-panel {
+  /* Chromium quirk: backdrop-filter renders nothing when the same element is
+     box-sizing:border-box (which Tailwind preflight sets globally). Force
+     content-box on the blurred element so the blur actually paints. */
+  box-sizing: content-box;
+  color: var(--stp-fg);
+  background: var(--stp-bg);
+  border: var(--stp-border);
+  border-radius: var(--stp-radius);
+  box-shadow: var(--stp-shadow);
+  /* backdrop-filter is set inline (see appearanceStyle) — lightningcss strips
+     the unprefixed property when it lives in the stylesheet. */
+}
+
+.stp-btn {
+  color: var(--stp-fg);
+  border-radius: var(--stp-radius-inner);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.stp-btn:hover {
+  background: var(--stp-accent);
+  color: var(--stp-accent-fg);
+}
+.stp-btn-ok {
+  color: #22c55e;
+}
+
+.stp-divider {
+  background: var(--stp-fg);
+  opacity: 0.25;
+}
+.stp-muted {
+  color: var(--stp-fg);
+  opacity: 0.6;
+}
+.stp-accent-text {
+  color: var(--stp-accent);
+}
+
+.stp-select {
+  color: var(--stp-fg);
+}
+/* Native option list is OS-rendered on a light bg — keep its text dark. */
+.stp-select option {
+  color: #111827;
+}
