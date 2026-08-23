@@ -38,8 +38,7 @@ export type Request =
 
 // background -> content
 export type Command =
-  | { type: 'TRIGGER_SELECTION' }
-  | { type: 'PERFORM_ACTION'; action: string; text?: string }
+  { type: 'TRIGGER_SELECTION' } | { type: 'PERFORM_ACTION'; action: string; text?: string }
 
 export type Ok<T> = { ok: true; data: T }
 export type Err = { ok: false; error: string }

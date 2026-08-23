@@ -11,7 +11,10 @@ const SYMBOLS: Record<string, string> = {
 }
 
 /** Parse "100 USD", "USD 100", "$100", or "100" from a selection. */
-export function parseAmount(text: string, fallbackBase: string): { amount: number; base: string } | null {
+export function parseAmount(
+  text: string,
+  fallbackBase: string,
+): { amount: number; base: string } | null {
   const t = text.trim()
   const num = t.replace(/[,_\s]/g, '').match(/-?\d+(\.\d+)?/)
   if (!num) return null

@@ -143,7 +143,8 @@ class Store {
 
       switch (action) {
         case 'search': {
-          const eng = s.search.engines.find((e) => e.id === s.search.defaultEngineId) ?? s.search.engines[0]
+          const eng =
+            s.search.engines.find((e) => e.id === s.search.defaultEngineId) ?? s.search.engines[0]
           if (!eng) throw new Error('No search engine configured')
           window.open(eng.url.replace('%s', encodeURIComponent(text)), '_blank')
           this.hide()
@@ -224,7 +225,9 @@ class Store {
       window.open(out.trim(), '_blank')
       this.hide()
     } else {
-      this.set({ view: { kind: 'result', result: { kind: 'text', title: action.name, body: out } } })
+      this.set({
+        view: { kind: 'result', result: { kind: 'text', title: action.name, body: out } },
+      })
     }
   }
 }

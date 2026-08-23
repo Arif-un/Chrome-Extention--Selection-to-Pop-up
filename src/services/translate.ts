@@ -7,10 +7,9 @@ import { langName } from '../lib/langs'
  * bypass page CSP/CORS.
  */
 export async function translate(text: string, targetLang: string): Promise<TranslateResult> {
-  const url =
-    `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(
-      targetLang,
-    )}&dt=t&q=${encodeURIComponent(text)}`
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(
+    targetLang,
+  )}&dt=t&q=${encodeURIComponent(text)}`
 
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Translate failed (${res.status})`)

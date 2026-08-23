@@ -72,7 +72,13 @@ export const DEFAULT_APPEARANCE: Appearance = {
 
 function hexToRgba(hex: string, alpha: number): string {
   const m = hex.replace('#', '')
-  const n = m.length === 3 ? m.split('').map((c) => c + c).join('') : m
+  const n =
+    m.length === 3
+      ? m
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : m
   const r = parseInt(n.slice(0, 2), 16)
   const g = parseInt(n.slice(2, 4), 16)
   const b = parseInt(n.slice(4, 6), 16)

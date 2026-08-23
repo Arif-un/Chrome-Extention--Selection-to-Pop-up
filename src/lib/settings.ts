@@ -17,7 +17,12 @@ function deepMerge<T>(base: T, patch: Partial<T> | undefined): T {
   for (const [k, v] of Object.entries(patch as Record<string, unknown>)) {
     const cur = (base as Record<string, unknown>)[k]
     const bothObjects =
-      v && typeof v === 'object' && !Array.isArray(v) && cur && typeof cur === 'object' && !Array.isArray(cur)
+      v &&
+      typeof v === 'object' &&
+      !Array.isArray(v) &&
+      cur &&
+      typeof cur === 'object' &&
+      !Array.isArray(cur)
     if (bothObjects) {
       out[k] = deepMerge(cur, v as Record<string, unknown>)
     } else if (v !== undefined) {
@@ -30,13 +35,17 @@ function deepMerge<T>(base: T, patch: Partial<T> | undefined): T {
 /** Build a settings object from legacy v1.x keys (best-effort). */
 export function migrateLegacy(legacy: LegacyConfig): Partial<Settings> {
   const patch: Partial<Settings> = {}
-  if (legacy.primaryTranslate) patch.translate = { ...DEFAULT_SETTINGS.translate, targetLang: legacy.primaryTranslate }
+  if (legacy.primaryTranslate)
+    patch.translate = { ...DEFAULT_SETTINGS.translate, targetLang: legacy.primaryTranslate }
   // legacy currency (often BDT) may be unsupported by frankfurter.dev; only carry it over if valid
   if (legacy.primaryCurrency && isSupportedCurrency(legacy.primaryCurrency)) {
     patch.currency = { ...DEFAULT_SETTINGS.currency, target: legacy.primaryCurrency.toUpperCase() }
   }
   if (typeof legacy.pop_win === 'boolean') {
-    patch.translate = { ...(patch.translate ?? DEFAULT_SETTINGS.translate), openInWindow: legacy.pop_win }
+    patch.translate = {
+      ...(patch.translate ?? DEFAULT_SETTINGS.translate),
+      openInWindow: legacy.pop_win,
+    }
   }
   return patch
 }

@@ -72,9 +72,36 @@ export function langName(code: string): string {
 
 /** Currencies with accurate ECB rates from frankfurter.dev (primary source). */
 export const FRANKFURTER_CURRENCIES = [
-  'AUD', 'BRL', 'CAD', 'CHF', 'CNY', 'CZK', 'DKK', 'EUR', 'GBP', 'HKD',
-  'HUF', 'IDR', 'ILS', 'INR', 'ISK', 'JPY', 'KRW', 'MXN', 'MYR', 'NOK',
-  'NZD', 'PHP', 'PLN', 'RON', 'SEK', 'SGD', 'THB', 'TRY', 'USD', 'ZAR',
+  'AUD',
+  'BRL',
+  'CAD',
+  'CHF',
+  'CNY',
+  'CZK',
+  'DKK',
+  'EUR',
+  'GBP',
+  'HKD',
+  'HUF',
+  'IDR',
+  'ILS',
+  'INR',
+  'ISK',
+  'JPY',
+  'KRW',
+  'MXN',
+  'MYR',
+  'NOK',
+  'NZD',
+  'PHP',
+  'PLN',
+  'RON',
+  'SEK',
+  'SGD',
+  'THB',
+  'TRY',
+  'USD',
+  'ZAR',
 ]
 
 /**
@@ -84,8 +111,26 @@ export const FRANKFURTER_CURRENCIES = [
  */
 export const CURRENCIES = [
   ...FRANKFURTER_CURRENCIES,
-  'AED', 'ARS', 'BDT', 'BHD', 'CLP', 'COP', 'EGP', 'KWD', 'LKR', 'MAD',
-  'NGN', 'NPR', 'OMR', 'PKR', 'QAR', 'RUB', 'SAR', 'TWD', 'UAH', 'VND',
+  'AED',
+  'ARS',
+  'BDT',
+  'BHD',
+  'CLP',
+  'COP',
+  'EGP',
+  'KWD',
+  'LKR',
+  'MAD',
+  'NGN',
+  'NPR',
+  'OMR',
+  'PKR',
+  'QAR',
+  'RUB',
+  'SAR',
+  'TWD',
+  'UAH',
+  'VND',
 ].sort()
 
 export function isSupportedCurrency(code: string): boolean {
