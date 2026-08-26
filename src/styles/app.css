@@ -5,18 +5,52 @@
 /* Class-based dark mode: JS toggles `.dark` on <html> (see lib/theme.ts). */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* macOS-native semantic palette. The --ui-* custom properties flip under .dark;
+   Tailwind color tokens below just point at them, so `bg-surface`, `text-ink`,
+   `border-line`, `accent-accent` etc. are theme-aware everywhere. */
+@theme {
+  --color-canvas: var(--ui-canvas);
+  --color-surface: var(--ui-surface);
+  --color-surface-hover: var(--ui-surface-hover);
+  --color-line: var(--ui-line);
+  --color-ink: var(--ui-ink);
+  --color-muted: var(--ui-muted);
+  --color-accent: var(--ui-accent);
+  --color-accent-hover: var(--ui-accent-hover);
+  --color-danger: var(--ui-danger);
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+}
+
 :root {
   color-scheme: light;
+  --ui-canvas: #f5f5f7;
+  --ui-surface: #ffffff;
+  --ui-surface-hover: #f0f0f2;
+  --ui-line: #d2d2d7;
+  --ui-ink: #1d1d1f;
+  --ui-muted: #6e6e73;
+  --ui-accent: #007aff;
+  --ui-accent-hover: #0a6fe0;
+  --ui-danger: #ff3b30;
 }
 .dark {
   color-scheme: dark;
+  --ui-canvas: #1c1c1e;
+  --ui-surface: #2c2c2e;
+  --ui-surface-hover: #3a3a3c;
+  --ui-line: #3a3a3c;
+  --ui-ink: #f5f5f7;
+  --ui-muted: #98989d;
+  --ui-accent: #007aff;
+  --ui-accent-hover: #3395ff;
+  --ui-danger: #ff453a;
 }
+
 body {
   margin: 0;
-  background: #f8fafc;
-  color: #0f172a;
-}
-.dark body {
-  background: #020617;
-  color: #e2e8f0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  background: var(--ui-canvas);
+  color: var(--ui-ink);
 }

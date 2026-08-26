@@ -16,7 +16,9 @@
     "check": "npm run format && npm run lint && npm test && npm run build"
   },
   "dependencies": {
-    "preact": "^10.24.3"
+    "clsx": "^2.1.1",
+    "preact": "^10.24.3",
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.7.1",
