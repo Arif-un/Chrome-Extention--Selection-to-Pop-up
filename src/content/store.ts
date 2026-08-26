@@ -8,6 +8,8 @@ import type {
   CurrencyResult,
 } from '../lib/messages'
 import { runJsAction } from './run-js'
+import { getEndpointRects } from './selection'
+import { sameGeom, type SelGeom } from '../lib/handles'
 
 /** Copy text, falling back to execCommand on insecure (http) origins where navigator.clipboard is undefined. */
 async function writeClipboard(text: string): Promise<boolean> {
@@ -58,6 +60,10 @@ export interface State {
   copied: boolean
   /** one-off inline overrides from the tooltip dropdowns; reset per selection */
   overrides: { translateTo?: string; curBase?: string; curTarget?: string }
+  /** endpoint geometry for the draggable selection handles (null = hidden) */
+  sel: SelGeom | null
+  /** a handle is currently being dragged (overlay goes pointer-events:none) */
+  dragging: boolean
 }
 
 type Listener = () => void
@@ -72,11 +78,15 @@ class Store {
     settings: null,
     copied: false,
     overrides: {},
+    sel: null,
+    dragging: false,
   }
   private listeners = new Set<Listener>()
   private copyTimer?: ReturnType<typeof setTimeout>
   /** bumped per perform(); async results from a superseded run are dropped */
   private reqSeq = 0
+  /** set on a mouse handle-drag end so the trailing document mouseup skips showButtons */
+  private dragJustEnded = false
 
   async init() {
     this.state.settings = await getSettings()
@@ -109,19 +119,70 @@ class Store {
     if (this.state.open) this.set({ open: false })
   }
 
+  /** Reposition the popup (used by the tooltip drag handle). */
+  move(x: number, y: number) {
+    this.set({ x, y })
+  }
+
+  setDragging(v: boolean) {
+    if (this.state.dragging !== v) this.set({ dragging: v })
+  }
+
+  /** End a handle drag; mouse drags flag the trailing mouseup so it won't reset the view. */
+  endDrag(fromMouse: boolean) {
+    this.setDragging(false)
+    if (fromMouse) this.dragJustEnded = true
+  }
+
+  /** True once per mouse handle-drag end; consumed by the document mouseup handler. */
+  consumeDragEnd(): boolean {
+    const v = this.dragJustEnded
+    this.dragJustEnded = false
+    return v
+  }
+
+  /**
+   * Recompute handle geometry from the current selection (or hide if off/empty).
+   * Returns the geometry so callers can reuse it (e.g. re-anchoring the popup)
+   * without measuring the selection a second time. Skips emit when unchanged.
+   */
+  syncHandles(): SelGeom | null {
+    const on = this.state.settings?.selectionHandles.enabled
+    const next = on ? getEndpointRects() : null
+    if (!sameGeom(this.state.sel, next)) this.set({ sel: next })
+    return next
+  }
+
+  /** While a handle is dragged: keep an open popup on the (new) selection. */
+  updateAnchor(text: string, x: number, y: number) {
+    if (!this.state.open || !text) return
+    this.set({ text, x, y })
+  }
+
+  /** Re-run the action currently shown in the popup against the new selection. */
+  rerunActive() {
+    const v = this.state.view
+    if (v.kind !== 'result') return
+    const kind = v.result.kind
+    // 'text' results come from custom actions (possible side effects) — don't auto-rerun.
+    if (kind === 'translate' || kind === 'dictionary' || kind === 'currency') void this.perform(kind)
+  }
+
   /** Inline one-off language override for translate; re-runs the lookup. */
   setTranslateLang(code: string) {
-    this.state.overrides = { ...this.state.overrides, translateTo: code }
+    this.set({ overrides: { ...this.state.overrides, translateTo: code } })
     void this.perform('translate')
   }
 
   /** Inline one-off currency source/target override; re-runs the conversion. */
   setCurrency(patch: { base?: string; target?: string }) {
-    this.state.overrides = {
-      ...this.state.overrides,
-      ...(patch.base !== undefined && { curBase: patch.base }),
-      ...(patch.target !== undefined && { curTarget: patch.target }),
-    }
+    this.set({
+      overrides: {
+        ...this.state.overrides,
+        ...(patch.base !== undefined && { curBase: patch.base }),
+        ...(patch.target !== undefined && { curTarget: patch.target }),
+      },
+    })
     void this.perform('currency')
   }
 
@@ -135,7 +196,7 @@ class Store {
     const s = this.state.settings
     const text = (textOverride ?? this.state.text).trim()
     if (!s || !text) return
-    this.state.text = text
+    this.set({ text })
     const seq = ++this.reqSeq
 
     try {

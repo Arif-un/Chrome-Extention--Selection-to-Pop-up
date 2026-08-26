@@ -1,13 +1,14 @@
-import { render, h } from 'preact'
+import { render, h, Fragment } from 'preact'
 import { store } from './store'
 import { Tooltip } from './Tooltip'
+import { Handles } from './Handles'
+import { anchorFor } from './anchor'
 import type { Command } from '../lib/messages'
 // Compiled Tailwind CSS as a string, injected into the shadow root for isolation.
 import css from './tooltip.css?inline'
 
 const HOST_ID = '__stp_host'
-const TOOLTIP_H = 44 // approx button-row height for positioning
-const TOOLTIP_W = 320 // approx max panel width, for clamping x within the viewport
+const TOOLTIP_W = 320 // approx max panel width, used to centre fallback popups
 
 function mount() {
   if (document.getElementById(HOST_ID)) return
@@ -29,48 +30,61 @@ function mount() {
 
   const app = document.createElement('div')
   shadow.appendChild(app)
-  render(h(Tooltip, {}), app)
+  render(h(Fragment, null, h(Tooltip, {}), h(Handles, {})), app)
 }
 
-function currentSelection(): { text: string; x: number; y: number } | null {
-  const sel = window.getSelection()
-  const text = sel?.toString().trim() ?? ''
-  if (!text || !sel || sel.rangeCount === 0) return null
-  const rect = sel.getRangeAt(0).getBoundingClientRect()
-  const a = store.state.settings?.appearance
-  const above = rect.top - TOOLTIP_H - 6
-  const below = rect.bottom + 6
-
-  let y: number
-  if (a?.anchor === 'below') y = below
-  else if (a?.anchor === 'above') y = above
-  else y = above < 8 ? below : above // auto
-
-  const x = Math.max(8, Math.min(rect.left + (a?.offsetX ?? 0), window.innerWidth - TOOLTIP_W))
-  y += a?.offsetY ?? 0
-  return { text, x, y }
-}
-
-// Show buttons on selection (if enabled).
+// Show buttons on selection (if enabled). A mouse handle-drag ends with a
+// compatibility mouseup too — skip it so it doesn't reset an open result panel.
 document.addEventListener('mouseup', () => {
+  if (store.consumeDragEnd()) return
   setTimeout(() => {
     if (!store.state.settings?.trigger.onSelection) return
-    const s = currentSelection()
+    const s = anchorFor()
     if (s) store.showButtons(s.text, s.x, s.y)
     else store.hide()
   }, 0)
 })
 
-// Hide when clicking elsewhere (tooltip stops its own propagation).
+// Keep the drag handles in sync with the selection (independent of the popup),
+// and keep an open popup anchored to it. Also fires for programmatic changes
+// during a handle drag. syncHandles returns the geometry so the anchor reuses
+// it instead of measuring the selection twice.
+document.addEventListener('selectionchange', () => {
+  const g = store.syncHandles()
+  if (store.state.open) {
+    const s = anchorFor(undefined, g)
+    if (s) store.updateAnchor(s.text, s.x, s.y)
+  }
+})
+
+// Handle rects are viewport-relative, so recompute them (and re-anchor an open
+// popup) as the page moves. rAF-coalesced so scroll fires at most one recompute
+// per frame; passive so it never blocks scrolling.
+let repositionRaf = 0
+const reposition = () => {
+  if (repositionRaf) return
+  repositionRaf = requestAnimationFrame(() => {
+    repositionRaf = 0
+    const g = store.syncHandles()
+    if (store.state.open) {
+      const s = anchorFor(undefined, g)
+      if (s) store.updateAnchor(s.text, s.x, s.y)
+    }
+  })
+}
+window.addEventListener('scroll', reposition, { capture: true, passive: true })
+window.addEventListener('resize', reposition, { passive: true })
+
+// Hide when clicking elsewhere (tooltip and handles stop their own propagation).
 document.addEventListener('mousedown', () => store.hide())
 
 // Commands from background (context menu / hotkey).
 chrome.runtime.onMessage.addListener((msg: Command) => {
   if (msg.type === 'TRIGGER_SELECTION') {
-    const s = currentSelection()
+    const s = anchorFor()
     if (s) store.showButtons(s.text, s.x, s.y)
   } else if (msg.type === 'PERFORM_ACTION') {
-    const s = currentSelection()
+    const s = anchorFor()
     const text = (msg.text ?? s?.text ?? '').trim()
     if (!text) return
     const x = s?.x ?? Math.round(window.innerWidth / 2) - TOOLTIP_W / 2

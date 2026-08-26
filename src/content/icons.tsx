@@ -53,6 +53,11 @@ export const IconBolt = (p: P) => (
     <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
   </svg>
 )
+export const IconGrip = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4 9h16M4 15h16" />
+  </svg>
+)
 export const IconClose = (p: P) => (
   <svg {...base} {...p}>
     <path d="M18 6 6 18M6 6l12 12" />
