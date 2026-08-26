@@ -104,7 +104,7 @@ export function Options() {
     <div class="mx-auto max-w-2xl space-y-6 p-6">
       <header class="sticky top-0 z-10 -mx-6 flex items-center justify-between border-b border-line bg-canvas/80 px-6 py-3 backdrop-blur">
         <div>
-          <h1 class="text-lg font-semibold text-ink">Selection To Popup</h1>
+          <h1 class="text-lg font-semibold text-ink">Select to Action</h1>
           <p class="text-xs text-muted">Settings</p>
         </div>
         <div class="flex items-center gap-2">

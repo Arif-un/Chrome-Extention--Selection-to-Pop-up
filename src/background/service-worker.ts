@@ -12,7 +12,7 @@ async function buildMenus(settings: Settings) {
   await chrome.contextMenus.removeAll()
   chrome.contextMenus.create({
     id: PARENT_ID,
-    title: 'Selection To Popup',
+    title: 'Select to Action',
     contexts: ['selection'],
   })
 

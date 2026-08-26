@@ -1,6 +1,6 @@
-# Support Selection to PopUp 💛
+# Support Select to Action 💛
 
-Selection to PopUp is free, open source, and ad-free — no tracking, no paywalls.
+Select to Action is free, open source, and ad-free — no tracking, no paywalls.
 If it saves you time, please consider supporting its development. Your sponsorship
 covers maintenance, new features, and keeping it MV3-compliant.
 
