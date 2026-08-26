@@ -6,7 +6,9 @@ import { updateAt } from '../lib/arr'
 import { BUILTIN_KEYS, BUILTIN_LABELS } from '../lib/builtins'
 import type { Settings, SearchEngine, CustomAction } from '../lib/types'
 import { LANGS, CURRENCIES } from '../lib/langs'
-import { PRESETS, appearanceStyle, type Appearance, type PresetName } from '../lib/appearance'
+import { PRESETS, appearanceStyle, hexToRgba, type Appearance, type PresetName } from '../lib/appearance'
+import type { SelectionHandles } from '../lib/handles'
+import { Handle } from '../content/Handle'
 import { Section } from '../components/Section'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -99,6 +101,11 @@ export function Options() {
     }
     update({ appearance: { ...a, ...PRESETS[name], preset: name } })
   }
+
+  // --- selection handles ---
+  const hh = s.selectionHandles
+  const setHandles = (patch: Partial<SelectionHandles>) =>
+    update({ selectionHandles: { ...hh, ...patch } })
 
   return (
     <div class="mx-auto max-w-2xl space-y-6 p-6">
@@ -314,6 +321,97 @@ export function Options() {
                 <div class="text-sm">নমুনা অনুবাদ</div>
                 <div class="stp-accent-text mt-0.5 text-[11px]">syn: sample, example</div>
               </div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Section
+        title="Selection handles"
+        desc="Mobile-style carets at each end of a selection; drag them to expand or shrink it. Changes preview live."
+      >
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="space-y-3">
+            <Switch
+              label="Show drag handles on selection"
+              checked={hh.enabled}
+              onChange={(v) => setHandles({ enabled: v })}
+            />
+            <Row label="Color">
+              <input
+                type="color"
+                value={hh.color}
+                disabled={!hh.enabled}
+                onInput={(e) => setHandles({ color: e.currentTarget.value })}
+                class={swatch}
+              />
+            </Row>
+            <label class="block text-sm text-ink">
+              Opacity <span class="text-muted">{Math.round(hh.opacity * 100)}%</span>
+              <input
+                type="range"
+                min="0.1"
+                max="1"
+                step="0.05"
+                value={hh.opacity}
+                disabled={!hh.enabled}
+                onInput={(e) => setHandles({ opacity: +e.currentTarget.value })}
+                class={slider}
+              />
+            </label>
+            <label class="block text-sm text-ink">
+              Thickness <span class="text-muted">{hh.thickness}px</span>
+              <input
+                type="range"
+                min="1"
+                max="6"
+                step="1"
+                value={hh.thickness}
+                disabled={!hh.enabled}
+                onInput={(e) => setHandles({ thickness: +e.currentTarget.value })}
+                class={slider}
+              />
+            </label>
+            <label class="block text-sm text-ink">
+              Size <span class="text-muted">{Math.round(hh.size * 100)}%</span>
+              <input
+                type="range"
+                min="0.5"
+                max="2"
+                step="0.05"
+                value={hh.size}
+                disabled={!hh.enabled}
+                onInput={(e) => setHandles({ size: +e.currentTarget.value })}
+                class={slider}
+              />
+            </label>
+          </div>
+
+          <div
+            class="flex items-center justify-center rounded-lg p-6"
+            style={{
+              backgroundColor: '#0b1220',
+              backgroundImage:
+                'linear-gradient(45deg, #131c2e 25%, transparent 25%), linear-gradient(-45deg, #131c2e 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #131c2e 75%), linear-gradient(-45deg, transparent 75%, #131c2e 75%)',
+              backgroundSize: '20px 20px',
+              backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
+            }}
+          >
+            <div class="select-none font-sans text-base leading-[24px] text-white">
+              Drag the{' '}
+              <span
+                class="relative"
+                style={{ background: hexToRgba(hh.color, 0.28), padding: '0 1px' }}
+              >
+                <span style={{ position: 'absolute', left: '0', top: '0' }}>
+                  <Handle side="start" h={hh} height={24} />
+                </span>
+                selected text
+                <span style={{ position: 'absolute', right: '0', top: '0' }}>
+                  <Handle side="end" h={hh} height={24} />
+                </span>
+              </span>{' '}
+              to resize.
             </div>
           </div>
         </div>
