@@ -8,12 +8,17 @@ import type { Settings, SearchEngine, CustomAction } from '../lib/types'
 import { LANGS, CURRENCIES } from '../lib/langs'
 import { PRESETS, appearanceStyle, type Appearance, type PresetName } from '../lib/appearance'
 import { Section } from '../components/Section'
-import { Check } from '../components/Check'
+import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
+import { Textarea } from '../components/ui/Textarea'
+import { Select } from '../components/ui/Select'
+import { Switch } from '../components/ui/Switch'
+import { Row } from '../components/ui/Row'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { IconSearch, IconCopy, IconTranslate, IconBook } from '../content/icons'
 
-const input =
-  'rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-sky-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white'
+const swatch = 'h-7 w-10 shrink-0 cursor-pointer rounded-md border border-line bg-transparent disabled:opacity-40'
+const slider = 'w-full accent-accent'
 
 export function Options() {
   const [s, setS] = useSettings()
@@ -23,7 +28,7 @@ export function Options() {
   const baseline = useRef<Settings | null>(null)
   if (s && !baseline.current) baseline.current = s
 
-  if (!s) return <div class="p-8 text-slate-400">Loading…</div>
+  if (!s) return <div class="p-8 text-muted">Loading…</div>
 
   // Same section-diff the save uses: nothing changed vs. the loaded snapshot => nothing to save.
   const base = baseline.current ?? s
@@ -96,48 +101,37 @@ export function Options() {
   }
 
   return (
-    <div class="mx-auto max-w-2xl space-y-4 p-6">
-      <header class="sticky top-0 z-10 -mx-6 flex items-center justify-between border-b border-slate-200 bg-slate-50/90 px-6 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
+    <div class="mx-auto max-w-2xl space-y-6 p-6">
+      <header class="sticky top-0 z-10 -mx-6 flex items-center justify-between border-b border-line bg-canvas/80 px-6 py-3 backdrop-blur">
         <div>
-          <h1 class="text-lg font-semibold text-slate-900 dark:text-white">Selection To Popup</h1>
-          <p class="text-xs text-slate-500 dark:text-slate-400">Settings</p>
+          <h1 class="text-lg font-semibold text-ink">Selection To Popup</h1>
+          <p class="text-xs text-muted">Settings</p>
         </div>
         <div class="flex items-center gap-2">
           <ThemeToggle />
-          <button
-            type="button"
-            onClick={reset}
-            class="rounded-md px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800"
-          >
-            Reset
-          </button>
-          <button
-            type="button"
-            onClick={save}
-            disabled={!dirty}
-            class="rounded-md bg-sky-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:disabled:bg-slate-800 dark:disabled:text-slate-500"
-          >
+          <Button onClick={reset}>Reset</Button>
+          <Button variant="primary" onClick={save} disabled={!dirty}>
             {saved ? 'Saved ✓' : 'Save'}
-          </button>
+          </Button>
         </div>
       </header>
 
-      <Section title="Trigger">
-        <Check
+      <Section
+        title="Trigger"
+        divided
+        footnote="Context menu and the keyboard shortcut (Alt+S, editable at chrome://extensions/shortcuts) always work."
+      >
+        <Switch
           label="Show popup automatically on text selection"
           checked={s.trigger.onSelection}
           onChange={(v) => update({ trigger: { onSelection: v } })}
         />
-        <p class="text-xs text-slate-500">
-          Context menu and the keyboard shortcut (Alt+S, editable at chrome://extensions/shortcuts)
-          always work.
-        </p>
       </Section>
 
       <Section title="Actions" desc="Which built-in actions appear in the popup.">
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-2 gap-x-4 gap-y-3">
           {BUILTIN_KEYS.map((k) => (
-            <Check
+            <Switch
               key={k}
               label={BUILTIN_LABELS[k]}
               checked={s.builtins[k]}
@@ -153,63 +147,54 @@ export function Options() {
       >
         <div class="grid gap-4 md:grid-cols-2">
           <div class="space-y-3">
-            <label class="flex items-center justify-between gap-2 text-sm">
-              Preset
-              <select
-                class={input}
-                value={a.preset}
-                onChange={(e) => applyPreset(e.currentTarget.value as PresetName)}
-              >
+            <Row label="Preset">
+              <Select value={a.preset} onChange={(e) => applyPreset(e.currentTarget.value as PresetName)}>
                 <option value="dark">Dark</option>
                 <option value="light">Light</option>
                 <option value="glass">Glass</option>
                 <option value="custom">Custom</option>
-              </select>
-            </label>
+              </Select>
+            </Row>
 
             <div class="grid grid-cols-2 gap-2">
-              <label class="flex items-center justify-between gap-2 text-sm">
-                Icon / text
+              <Row label="Icon / text">
                 <input
                   type="color"
                   value={a.fg}
                   onInput={(e) => setAppr({ fg: e.currentTarget.value })}
-                  class="h-7 w-10 rounded bg-transparent"
+                  class={swatch}
                 />
-              </label>
-              <label class="flex items-center justify-between gap-2 text-sm">
-                Accent
+              </Row>
+              <Row label="Accent">
                 <input
                   type="color"
                   value={a.accent}
                   onInput={(e) => setAppr({ accent: e.currentTarget.value })}
-                  class="h-7 w-10 rounded bg-transparent"
+                  class={swatch}
                 />
-              </label>
-              <label class="flex items-center justify-between gap-2 text-sm">
-                Background
+              </Row>
+              <Row label="Background">
                 <input
                   type="color"
                   value={a.bg}
                   onInput={(e) => setAppr({ bg: e.currentTarget.value })}
-                  class="h-7 w-10 rounded bg-transparent"
+                  class={swatch}
                 />
-              </label>
-              <label class="flex items-center justify-between gap-2 text-sm">
-                Border color
+              </Row>
+              <Row label="Border color">
                 <input
                   type="color"
                   value={a.borderColor}
                   disabled={!a.border}
                   onInput={(e) => setAppr({ borderColor: e.currentTarget.value })}
-                  class="h-7 w-10 rounded bg-transparent disabled:opacity-40"
+                  class={swatch}
                 />
-              </label>
+              </Row>
             </div>
 
-            <label class="block text-sm">
+            <label class="block text-sm text-ink">
               Background opacity{' '}
-              <span class="text-slate-500 dark:text-slate-400">{Math.round(a.bgOpacity * 100)}%</span>
+              <span class="text-muted">{Math.round(a.bgOpacity * 100)}%</span>
               <input
                 type="range"
                 min="0"
@@ -217,11 +202,11 @@ export function Options() {
                 step="0.01"
                 value={a.bgOpacity}
                 onInput={(e) => setAppr({ bgOpacity: +e.currentTarget.value })}
-                class="w-full accent-sky-500"
+                class={slider}
               />
             </label>
-            <label class="block text-sm">
-              Background blur <span class="text-slate-500 dark:text-slate-400">{a.blur}px</span>
+            <label class="block text-sm text-ink">
+              Background blur <span class="text-muted">{a.blur}px</span>
               <input
                 type="range"
                 min="0"
@@ -229,11 +214,11 @@ export function Options() {
                 step="1"
                 value={a.blur}
                 onInput={(e) => setAppr({ blur: +e.currentTarget.value })}
-                class="w-full accent-sky-500"
+                class={slider}
               />
             </label>
-            <label class="block text-sm">
-              Roundness <span class="text-slate-500 dark:text-slate-400">{a.radius}px</span>
+            <label class="block text-sm text-ink">
+              Roundness <span class="text-muted">{a.radius}px</span>
               <input
                 type="range"
                 min="0"
@@ -241,11 +226,11 @@ export function Options() {
                 step="1"
                 value={a.radius}
                 onInput={(e) => setAppr({ radius: +e.currentTarget.value })}
-                class="w-full accent-sky-500"
+                class={slider}
               />
             </label>
-            <label class="block text-sm">
-              Size <span class="text-slate-500 dark:text-slate-400">{Math.round(a.scale * 100)}%</span>
+            <label class="block text-sm text-ink">
+              Size <span class="text-muted">{Math.round(a.scale * 100)}%</span>
               <input
                 type="range"
                 min="0.8"
@@ -253,23 +238,19 @@ export function Options() {
                 step="0.05"
                 value={a.scale}
                 onInput={(e) => setAppr({ scale: +e.currentTarget.value })}
-                class="w-full accent-sky-500"
+                class={slider}
               />
             </label>
 
-            <div class="flex gap-4">
-              <Check label="Border" checked={a.border} onChange={(v) => setAppr({ border: v })} />
-              <Check label="Shadow" checked={a.shadow} onChange={(v) => setAppr({ shadow: v })} />
+            <div class="flex gap-6">
+              <Switch label="Border" checked={a.border} onChange={(v) => setAppr({ border: v })} />
+              <Switch label="Shadow" checked={a.shadow} onChange={(v) => setAppr({ shadow: v })} />
             </div>
 
-            <div class="border-t border-slate-200 pt-3 dark:border-slate-800">
-              <div class="mb-2 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Position
-              </div>
-              <label class="flex items-center justify-between gap-2 text-sm">
-                Anchor
-                <select
-                  class={input}
+            <div class="border-t border-line pt-3">
+              <div class="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Position</div>
+              <Row label="Anchor">
+                <Select
                   value={a.anchor}
                   onChange={(e) =>
                     setAppr({ anchor: e.currentTarget.value as Appearance['anchor'] }, false)
@@ -278,27 +259,25 @@ export function Options() {
                   <option value="auto">Auto</option>
                   <option value="above">Above selection</option>
                   <option value="below">Below selection</option>
-                </select>
-              </label>
+                </Select>
+              </Row>
               <div class="mt-2 grid grid-cols-2 gap-2">
-                <label class="flex items-center justify-between gap-2 text-sm">
-                  Offset X
-                  <input
+                <Row label="Offset X">
+                  <Input
                     type="number"
                     value={a.offsetX}
                     onInput={(e) => setAppr({ offsetX: +e.currentTarget.value || 0 }, false)}
-                    class={`${input} w-20`}
+                    class="w-20"
                   />
-                </label>
-                <label class="flex items-center justify-between gap-2 text-sm">
-                  Offset Y
-                  <input
+                </Row>
+                <Row label="Offset Y">
+                  <Input
                     type="number"
                     value={a.offsetY}
                     onInput={(e) => setAppr({ offsetY: +e.currentTarget.value || 0 }, false)}
-                    class={`${input} w-20`}
+                    class="w-20"
                   />
-                </label>
+                </Row>
               </div>
             </div>
           </div>
@@ -340,7 +319,15 @@ export function Options() {
         </div>
       </Section>
 
-      <Section title="Search engines" desc="Pick the default and toggle which are available.">
+      <Section
+        title="Search engines"
+        desc="Pick the default and toggle which are available."
+        footnote={
+          <>
+            Use <code>%s</code> where the selected text should go.
+          </>
+        }
+      >
         <div class="space-y-2">
           {s.search.engines.map((eng, i) => (
             <div key={eng.id} class="flex items-center gap-2">
@@ -350,55 +337,47 @@ export function Options() {
                 checked={s.search.defaultEngineId === eng.id}
                 onChange={() => update({ search: { ...s.search, defaultEngineId: eng.id } })}
                 title="Set as default"
-                class="h-4 w-4 accent-sky-500"
+                class="h-4 w-4 accent-accent"
               />
-              <input
-                class={`${input} w-28`}
+              <Input
+                class="w-28"
                 value={eng.name}
                 onInput={(e) =>
                   setEngines(updateAt(s.search.engines, i, { name: e.currentTarget.value }))
                 }
               />
-              <input
-                class={`${input} flex-1`}
+              <Input
+                class="flex-1"
                 value={eng.url}
                 placeholder="https://…/?q=%s"
                 onInput={(e) =>
                   setEngines(updateAt(s.search.engines, i, { url: e.currentTarget.value }))
                 }
               />
-              <input
-                type="checkbox"
-                checked={eng.enabled}
+              <Switch
                 title="Enabled"
-                onChange={(e) =>
-                  setEngines(updateAt(s.search.engines, i, { enabled: e.currentTarget.checked }))
-                }
-                class="h-4 w-4 accent-sky-500"
+                checked={eng.enabled}
+                onChange={(v) => setEngines(updateAt(s.search.engines, i, { enabled: v }))}
               />
-              <button
-                type="button"
+              <Button
+                variant="danger"
+                class="px-2"
+                title="Remove"
                 onClick={() => setEngines(s.search.engines.filter((_, j) => j !== i))}
-                class="px-1 text-slate-500 hover:text-red-400"
               >
                 ✕
-              </button>
+              </Button>
             </div>
           ))}
         </div>
-        <button type="button" onClick={addEngine} class="text-sm text-sky-600 hover:underline dark:text-sky-400">
+        <Button variant="primary" onClick={addEngine}>
           + Add engine
-        </button>
-        <p class="text-xs text-slate-500">
-          Use <code>%s</code> where the selected text should go.
-        </p>
+        </Button>
       </Section>
 
-      <Section title="Translate">
-        <label class="flex items-center gap-2 text-sm">
-          Target language
-          <select
-            class={input}
+      <Section title="Translate" divided>
+        <Row label="Target language">
+          <Select
             value={s.translate.targetLang}
             onChange={(e) =>
               update({ translate: { ...s.translate, targetLang: e.currentTarget.value } })
@@ -409,110 +388,105 @@ export function Options() {
                 {l.name}
               </option>
             ))}
-          </select>
-        </label>
-        <Check
+          </Select>
+        </Row>
+        <Switch
           label="Open in a separate Google Translate window instead of inline"
           checked={s.translate.openInWindow}
           onChange={(v) => update({ translate: { ...s.translate, openInWindow: v } })}
         />
       </Section>
 
-      <Section title="Dictionary">
-        <label class="flex items-center gap-2 text-sm">
-          Language
-          <select
-            class={input}
+      <Section title="Dictionary" divided>
+        <Row label="Language">
+          <Select
             value={s.dictionary.lang}
-            onChange={(e) =>
-              update({ dictionary: { ...s.dictionary, lang: e.currentTarget.value } })
-            }
+            onChange={(e) => update({ dictionary: { ...s.dictionary, lang: e.currentTarget.value } })}
           >
             {LANGS.map((l) => (
               <option key={l.code} value={l.code}>
                 {l.name}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </Row>
       </Section>
 
       <Section
         title="Currency"
         desc="Rates from frankfurter.dev (ECB); currencies outside that set (e.g. BDT) use open.er-api.com. Source is auto-detected from the selection; base below is the fallback when none is found."
+        divided
       >
-        <div class="flex items-center gap-3 text-sm">
-          <label class="flex items-center gap-2">
-            Fallback base
-            <select
-              class={input}
-              value={s.currency.base}
-              onChange={(e) => update({ currency: { ...s.currency, base: e.currentTarget.value } })}
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label class="flex items-center gap-2">
-            Convert to
-            <select
-              class={input}
-              value={s.currency.target}
-              onChange={(e) =>
-                update({ currency: { ...s.currency, target: e.currentTarget.value } })
-              }
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <Row label="Fallback base">
+          <Select
+            value={s.currency.base}
+            onChange={(e) => update({ currency: { ...s.currency, base: e.currentTarget.value } })}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        </Row>
+        <Row label="Convert to">
+          <Select
+            value={s.currency.target}
+            onChange={(e) => update({ currency: { ...s.currency, target: e.currentTarget.value } })}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        </Row>
       </Section>
 
       <Section
         title="Custom actions"
         desc="Add your own buttons: a URL template or a sandboxed JS snippet."
+        footnote={
+          <>
+            URL: use <code>%s</code> for the selection. JS: a function body with <code>input</code> ={' '}
+            <code>{'{ text, url, title }'}</code> in scope; <code>return</code> a string (shown) or an{' '}
+            <code>http(s)</code> URL (opened). Runs sandboxed — no page or extension access.
+          </>
+        }
       >
         <div class="space-y-3">
-          {s.customActions.map((a, i) => (
-            <div key={a.id} class="rounded-md border border-slate-300 p-2 dark:border-slate-700">
+          {s.customActions.map((action, i) => (
+            <div key={action.id} class="rounded-lg border border-line bg-surface-hover/50 p-2.5">
               <div class="flex items-center gap-2">
-                <input
-                  class={`${input} w-40`}
-                  value={a.name}
+                <Input
+                  class="w-40"
+                  value={action.name}
                   onInput={(e) =>
                     setActions(updateAt(s.customActions, i, { name: e.currentTarget.value }))
                   }
                 />
-                <span class="rounded bg-slate-200 px-2 py-0.5 text-xs uppercase text-slate-700 dark:bg-slate-700 dark:text-white">
-                  {a.type}
+                <span class="rounded-md bg-surface-hover px-2 py-0.5 text-xs font-medium uppercase text-muted">
+                  {action.type}
                 </span>
-                <input
-                  type="checkbox"
-                  checked={a.enabled}
-                  title="Enabled"
-                  onChange={(e) =>
-                    setActions(updateAt(s.customActions, i, { enabled: e.currentTarget.checked }))
-                  }
-                  class="ml-auto h-4 w-4 accent-sky-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setActions(s.customActions.filter((_, j) => j !== i))}
-                  class="px-1 text-slate-500 hover:text-red-400"
-                >
-                  ✕
-                </button>
+                <div class="ml-auto flex items-center gap-2">
+                  <Switch
+                    title="Enabled"
+                    checked={action.enabled}
+                    onChange={(v) => setActions(updateAt(s.customActions, i, { enabled: v }))}
+                  />
+                  <Button
+                    variant="danger"
+                    class="px-2"
+                    title="Remove"
+                    onClick={() => setActions(s.customActions.filter((_, j) => j !== i))}
+                  >
+                    ✕
+                  </Button>
+                </div>
               </div>
-              <textarea
-                class={`${input} mt-2 h-16 w-full font-mono text-xs`}
-                value={a.template}
+              <Textarea
+                class="mt-2 h-16 w-full font-mono text-xs"
+                value={action.template}
                 onInput={(e) =>
                   setActions(updateAt(s.customActions, i, { template: e.currentTarget.value }))
                 }
@@ -520,27 +494,14 @@ export function Options() {
             </div>
           ))}
         </div>
-        <div class="flex gap-3">
-          <button
-            type="button"
-            onClick={() => addAction('url')}
-            class="text-sm text-sky-600 hover:underline dark:text-sky-400"
-          >
+        <div class="flex gap-2">
+          <Button variant="primary" onClick={() => addAction('url')}>
             + URL action
-          </button>
-          <button
-            type="button"
-            onClick={() => addAction('js')}
-            class="text-sm text-sky-600 hover:underline dark:text-sky-400"
-          >
+          </Button>
+          <Button variant="primary" onClick={() => addAction('js')}>
             + JS action
-          </button>
+          </Button>
         </div>
-        <p class="text-xs text-slate-500">
-          URL: use <code>%s</code> for the selection. JS: a function body with <code>input</code> ={' '}
-          <code>{'{ text, url, title }'}</code> in scope; <code>return</code> a string (shown) or an{' '}
-          <code>http(s)</code> URL (opened). Runs sandboxed — no page or extension access.
-        </p>
       </Section>
     </div>
   )
