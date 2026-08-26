@@ -16,9 +16,9 @@ export function Popup() {
 
   return (
     <div class="w-72 space-y-3 p-4">
-      <h1 class="text-base font-semibold">Selection To PopUp</h1>
+      <h1 class="text-base font-semibold">Selection To Popup</h1>
 
-      <label class="flex cursor-pointer items-center justify-between rounded-md bg-slate-800 px-3 py-2 text-sm">
+      <label class="flex cursor-pointer items-center justify-between rounded-md bg-slate-100 px-3 py-2 text-sm dark:bg-slate-800">
         <span>Show popup on selection</span>
         <input
           type="checkbox"
@@ -28,17 +28,22 @@ export function Popup() {
         />
       </label>
 
-      <div class="rounded-md bg-slate-800 px-3 py-2 text-sm">
-        <div class="mb-1 text-xs uppercase tracking-wide text-slate-400">Enabled actions</div>
+      <div class="rounded-md bg-slate-100 px-3 py-2 text-sm dark:bg-slate-800">
+        <div class="mb-1 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          Enabled actions
+        </div>
         <div class="flex flex-wrap gap-1.5">
           {enabled.length === 0 && <span class="text-slate-500">None</span>}
           {enabled.map((k) => (
-            <span key={k} class="rounded bg-slate-700 px-2 py-0.5 text-xs">
+            <span
+              key={k}
+              class="rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-700 dark:bg-slate-700 dark:text-white"
+            >
               {BUILTIN_LABELS[k]}
             </span>
           ))}
         </div>
-        <div class="mt-2 text-xs text-slate-400">
+        <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
           Translate → {langName(settings.translate.targetLang)} · Currency →{' '}
           {settings.currency.target}
         </div>

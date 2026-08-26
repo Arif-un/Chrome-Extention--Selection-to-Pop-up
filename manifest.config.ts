@@ -3,7 +3,7 @@ import pkg from './package.json' with { type: 'json' }
 
 export default defineManifest({
   manifest_version: 3,
-  name: 'Selection To PopUp',
+  name: 'Selection To Popup',
   version: pkg.version,
   description: pkg.description,
   minimum_chrome_version: '116',
@@ -15,7 +15,7 @@ export default defineManifest({
   },
   action: {
     default_popup: 'src/popup/index.html',
-    default_title: 'Selection To PopUp',
+    default_title: 'Selection To Popup',
     default_icon: {
       16: 'src/assets/icons/select-logo-16.png',
       32: 'src/assets/icons/select-logo-32.png',

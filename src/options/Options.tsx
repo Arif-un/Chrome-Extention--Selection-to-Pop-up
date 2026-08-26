@@ -9,10 +9,11 @@ import { LANGS, CURRENCIES } from '../lib/langs'
 import { PRESETS, appearanceStyle, type Appearance, type PresetName } from '../lib/appearance'
 import { Section } from '../components/Section'
 import { Check } from '../components/Check'
+import { ThemeToggle } from '../components/ThemeToggle'
 import { IconSearch, IconCopy, IconTranslate, IconBook } from '../content/icons'
 
 const input =
-  'rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-white outline-none focus:border-sky-500'
+  'rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-sky-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white'
 
 export function Options() {
   const [s, setS] = useSettings()
@@ -23,6 +24,12 @@ export function Options() {
   if (s && !baseline.current) baseline.current = s
 
   if (!s) return <div class="p-8 text-slate-400">Loading…</div>
+
+  // Same section-diff the save uses: nothing changed vs. the loaded snapshot => nothing to save.
+  const base = baseline.current ?? s
+  const dirty = (Object.keys(s) as (keyof Settings)[]).some(
+    (k) => JSON.stringify(s[k]) !== JSON.stringify(base[k]),
+  )
 
   const update = (patch: Partial<Settings>) => {
     setS({ ...s, ...patch })
@@ -90,23 +97,25 @@ export function Options() {
 
   return (
     <div class="mx-auto max-w-2xl space-y-4 p-6">
-      <header class="flex items-center justify-between">
+      <header class="sticky top-0 z-10 -mx-6 flex items-center justify-between border-b border-slate-200 bg-slate-50/90 px-6 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
         <div>
-          <h1 class="text-lg font-semibold text-white">Selection To PopUp</h1>
-          <p class="text-xs text-slate-400">Settings</p>
+          <h1 class="text-lg font-semibold text-slate-900 dark:text-white">Selection To Popup</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Settings</p>
         </div>
         <div class="flex items-center gap-2">
+          <ThemeToggle />
           <button
             type="button"
             onClick={reset}
-            class="rounded-md px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
+            class="rounded-md px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Reset
           </button>
           <button
             type="button"
             onClick={save}
-            class="rounded-md bg-sky-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-sky-500"
+            disabled={!dirty}
+            class="rounded-md bg-sky-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:disabled:bg-slate-800 dark:disabled:text-slate-500"
           >
             {saved ? 'Saved ✓' : 'Save'}
           </button>
@@ -200,7 +209,7 @@ export function Options() {
 
             <label class="block text-sm">
               Background opacity{' '}
-              <span class="text-slate-400">{Math.round(a.bgOpacity * 100)}%</span>
+              <span class="text-slate-500 dark:text-slate-400">{Math.round(a.bgOpacity * 100)}%</span>
               <input
                 type="range"
                 min="0"
@@ -212,7 +221,7 @@ export function Options() {
               />
             </label>
             <label class="block text-sm">
-              Background blur <span class="text-slate-400">{a.blur}px</span>
+              Background blur <span class="text-slate-500 dark:text-slate-400">{a.blur}px</span>
               <input
                 type="range"
                 min="0"
@@ -224,7 +233,7 @@ export function Options() {
               />
             </label>
             <label class="block text-sm">
-              Roundness <span class="text-slate-400">{a.radius}px</span>
+              Roundness <span class="text-slate-500 dark:text-slate-400">{a.radius}px</span>
               <input
                 type="range"
                 min="0"
@@ -236,7 +245,7 @@ export function Options() {
               />
             </label>
             <label class="block text-sm">
-              Size <span class="text-slate-400">{Math.round(a.scale * 100)}%</span>
+              Size <span class="text-slate-500 dark:text-slate-400">{Math.round(a.scale * 100)}%</span>
               <input
                 type="range"
                 min="0.8"
@@ -253,8 +262,10 @@ export function Options() {
               <Check label="Shadow" checked={a.shadow} onChange={(v) => setAppr({ shadow: v })} />
             </div>
 
-            <div class="border-t border-slate-800 pt-3">
-              <div class="mb-2 text-xs uppercase tracking-wide text-slate-400">Position</div>
+            <div class="border-t border-slate-200 pt-3 dark:border-slate-800">
+              <div class="mb-2 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Position
+              </div>
               <label class="flex items-center justify-between gap-2 text-sm">
                 Anchor
                 <select
@@ -375,7 +386,7 @@ export function Options() {
             </div>
           ))}
         </div>
-        <button type="button" onClick={addEngine} class="text-sm text-sky-400 hover:underline">
+        <button type="button" onClick={addEngine} class="text-sm text-sky-600 hover:underline dark:text-sky-400">
           + Add engine
         </button>
         <p class="text-xs text-slate-500">
@@ -470,7 +481,7 @@ export function Options() {
       >
         <div class="space-y-3">
           {s.customActions.map((a, i) => (
-            <div key={a.id} class="rounded-md border border-slate-700 p-2">
+            <div key={a.id} class="rounded-md border border-slate-300 p-2 dark:border-slate-700">
               <div class="flex items-center gap-2">
                 <input
                   class={`${input} w-40`}
@@ -479,7 +490,9 @@ export function Options() {
                     setActions(updateAt(s.customActions, i, { name: e.currentTarget.value }))
                   }
                 />
-                <span class="rounded bg-slate-700 px-2 py-0.5 text-xs uppercase">{a.type}</span>
+                <span class="rounded bg-slate-200 px-2 py-0.5 text-xs uppercase text-slate-700 dark:bg-slate-700 dark:text-white">
+                  {a.type}
+                </span>
                 <input
                   type="checkbox"
                   checked={a.enabled}
@@ -511,14 +524,14 @@ export function Options() {
           <button
             type="button"
             onClick={() => addAction('url')}
-            class="text-sm text-sky-400 hover:underline"
+            class="text-sm text-sky-600 hover:underline dark:text-sky-400"
           >
             + URL action
           </button>
           <button
             type="button"
             onClick={() => addAction('js')}
-            class="text-sm text-sky-400 hover:underline"
+            class="text-sm text-sky-600 hover:underline dark:text-sky-400"
           >
             + JS action
           </button>
