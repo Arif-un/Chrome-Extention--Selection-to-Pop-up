@@ -20,14 +20,14 @@ export function Popup() {
     <div class="w-72 space-y-3 bg-canvas p-4 text-ink">
       <h1 class="text-base font-semibold">Selection To Popup</h1>
 
-      <div class="flex items-center justify-between rounded-lg border border-line bg-surface px-3 py-2 text-sm">
+      <label class="flex cursor-pointer items-center justify-between rounded-lg border border-line bg-surface px-3 py-2 text-sm">
         <span>Show popup on selection</span>
         <Switch
           title="Show popup on selection"
           checked={settings.trigger.onSelection}
           onChange={toggleTrigger}
         />
-      </div>
+      </label>
 
       <div class="rounded-lg border border-line bg-surface px-3 py-2 text-sm">
         <div class="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
