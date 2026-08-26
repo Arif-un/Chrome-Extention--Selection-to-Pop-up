@@ -18,6 +18,7 @@ export interface CustomAction {
 }
 
 import type { Appearance } from './appearance'
+import type { SelectionHandles } from './handles'
 
 export interface Settings {
   /** schema version, bumped on migrations */
@@ -51,4 +52,5 @@ export interface Settings {
     onSelection: boolean
   }
   appearance: Appearance
+  selectionHandles: SelectionHandles
 }

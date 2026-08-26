@@ -70,7 +70,7 @@ export const DEFAULT_APPEARANCE: Appearance = {
   offsetY: 0,
 }
 
-function hexToRgba(hex: string, alpha: number): string {
+export function hexToRgba(hex: string, alpha: number): string {
   const m = hex.replace('#', '')
   const n =
     m.length === 3

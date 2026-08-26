@@ -1,5 +1,6 @@
 import type { Settings, SearchEngine } from './types'
 import { DEFAULT_APPEARANCE } from './appearance'
+import { DEFAULT_HANDLES } from './handles'
 
 export const DEFAULT_ENGINES: SearchEngine[] = [
   { id: 'google', name: 'Google', url: 'https://www.google.com/search?q=%s', enabled: true },
@@ -13,7 +14,7 @@ export const DEFAULT_ENGINES: SearchEngine[] = [
   },
 ]
 
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 export const DEFAULT_SETTINGS: Settings = {
   schema: SCHEMA_VERSION,
@@ -25,4 +26,5 @@ export const DEFAULT_SETTINGS: Settings = {
   customActions: [],
   trigger: { onSelection: true },
   appearance: DEFAULT_APPEARANCE,
+  selectionHandles: DEFAULT_HANDLES,
 }
