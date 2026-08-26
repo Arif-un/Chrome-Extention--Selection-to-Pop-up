@@ -13,7 +13,8 @@
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,html}\"",
     "test": "vitest run",
-    "check": "npm run format && npm run lint && npm test && npm run build"
+    "check": "npm run format && npm run lint && npm test && npm run build",
+    "test:e2e": "npm run build && playwright test"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.7.1",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/chrome": "^0.0.287",
     "@typescript-eslint/eslint-plugin": "^8.15.0",

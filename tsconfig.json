@@ -19,5 +19,6 @@
     "jsxImportSource": "preact",
     "types": ["chrome", "vite/client"]
   },
-  "include": ["src", "vite.config.ts", "manifest.config.ts", "tests"]
+  "include": ["src", "vite.config.ts", "manifest.config.ts", "tests"],
+  "exclude": ["tests/e2e"]
 }
