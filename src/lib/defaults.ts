@@ -1,6 +1,7 @@
 import type { Settings, SearchEngine } from './types'
 import { DEFAULT_APPEARANCE } from './appearance'
 import { DEFAULT_HANDLES } from './handles'
+import { MORE } from './actions'
 
 export const DEFAULT_ENGINES: SearchEngine[] = [
   { id: 'google', name: 'Google', url: 'https://www.google.com/search?q=%s', enabled: true },
@@ -14,11 +15,13 @@ export const DEFAULT_ENGINES: SearchEngine[] = [
   },
 ]
 
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 6
 
 export const DEFAULT_SETTINGS: Settings = {
   schema: SCHEMA_VERSION,
   builtins: { search: true, copy: true, translate: true, dictionary: true, currency: false },
+  actionOrder: ['search', 'copy', 'translate', 'dictionary', 'currency', MORE],
+  moreMenu: true,
   search: { engines: DEFAULT_ENGINES, defaultEngineId: 'google' },
   translate: { targetLang: 'bn', openInWindow: false },
   dictionary: { lang: 'en' },

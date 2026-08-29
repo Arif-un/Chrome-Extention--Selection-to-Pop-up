@@ -17,19 +17,23 @@ export interface CustomAction {
   enabled: boolean
 }
 
+export type BuiltinKey = 'search' | 'copy' | 'translate' | 'dictionary' | 'currency'
+
 import type { Appearance } from './appearance'
 import type { SelectionHandles } from './handles'
 
 export interface Settings {
   /** schema version, bumped on migrations */
   schema: number
-  builtins: {
-    search: boolean
-    copy: boolean
-    translate: boolean
-    dictionary: boolean
-    currency: boolean
-  }
+  builtins: Record<BuiltinKey, boolean>
+  /**
+   * Unified popup order: built-in keys and `custom:<id>` tokens plus exactly one
+   * `__more__` divider. Tokens before the divider show in the icon bar; tokens
+   * after it show behind the `⋯` overflow menu.
+   */
+  actionOrder: string[]
+  /** master toggle for the `⋯` overflow menu; off = everything shows in the bar */
+  moreMenu: boolean
   search: {
     engines: SearchEngine[]
     defaultEngineId: string

@@ -31,6 +31,20 @@
   color: #22c55e;
 }
 
+@keyframes stp-expand {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.stp-expand {
+  animation: stp-expand 0.12s ease-out;
+}
+
 .stp-divider {
   background: var(--stp-fg);
   opacity: 0.25;

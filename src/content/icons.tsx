@@ -63,6 +63,13 @@ export const IconClose = (p: P) => (
     <path d="M18 6 6 18M6 6l12 12" />
   </svg>
 )
+export const IconMore = (p: P) => (
+  <svg {...base} fill="currentColor" stroke="none" {...p}>
+    <circle cx="5" cy="12" r="1.6" />
+    <circle cx="12" cy="12" r="1.6" />
+    <circle cx="19" cy="12" r="1.6" />
+  </svg>
+)
 export const IconCheck = (p: P) => (
   <svg {...base} {...p}>
     <path d="M20 6 9 17l-5-5" />
