@@ -35,31 +35,23 @@ function mount() {
 
 // Show buttons on selection (if enabled). A mouse handle-drag ends with a
 // compatibility mouseup too — skip it so it doesn't reset an open result panel.
-document.addEventListener('mouseup', () => {
+document.addEventListener('mouseup', (e) => {
   if (store.consumeDragEnd()) return
+  const cursor = { x: e.clientX, y: e.clientY }
   setTimeout(() => {
     if (!store.state.settings?.trigger.onSelection) return
-    const s = anchorFor()
+    const s = anchorFor(undefined, undefined, cursor)
     if (s) store.showButtons(s.text, s.x, s.y)
     else store.hide()
   }, 0)
 })
 
-// Keep the drag handles in sync with the selection (independent of the popup),
-// and keep an open popup anchored to it. Also fires for programmatic changes
-// during a handle drag. syncHandles returns the geometry so the anchor reuses
-// it instead of measuring the selection twice.
-document.addEventListener('selectionchange', () => {
-  const g = store.syncHandles()
-  if (store.state.open) {
-    const s = anchorFor(undefined, g)
-    if (s) store.updateAnchor(s.text, s.x, s.y)
-  }
-})
-
-// Handle rects are viewport-relative, so recompute them (and re-anchor an open
-// popup) as the page moves. rAF-coalesced so scroll fires at most one recompute
-// per frame; passive so it never blocks scrolling.
+// Keep the drag handles in sync with the selection (independent of the popup)
+// and keep an open popup anchored to it, recomputing as the page moves.
+// syncHandles returns geometry so the anchor reuses it instead of measuring
+// twice. rAF-coalesced so it recomputes at most once per frame — selectionchange
+// fires ~per pointermove during a field drag-select, and the field-geometry path
+// rebuilds a mirror div + forces reflow, so coalescing avoids layout thrash.
 let repositionRaf = 0
 const reposition = () => {
   if (repositionRaf) return
@@ -72,6 +64,7 @@ const reposition = () => {
     }
   })
 }
+document.addEventListener('selectionchange', reposition)
 window.addEventListener('scroll', reposition, { capture: true, passive: true })
 window.addEventListener('resize', reposition, { passive: true })
 
