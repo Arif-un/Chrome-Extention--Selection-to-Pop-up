@@ -20,6 +20,15 @@ export function Result({ result, translateTo }: { result: ResultView; translateT
           </Select>
         </div>
         <div class="text-sm leading-snug">{d.translation}</div>
+        <a
+          class="stp-accent-text inline-block text-[11px] hover:underline"
+          href={`https://translate.google.com/?sl=auto&tl=${translateTo}&text=${encodeURIComponent(store.getSnapshot().text)}&op=translate`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          Open in Google Translate
+        </a>
       </div>
     )
   }
