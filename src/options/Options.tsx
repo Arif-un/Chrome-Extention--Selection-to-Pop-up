@@ -2,11 +2,18 @@ import { useRef, useState } from 'preact/hooks'
 import { setSettings } from '../lib/settings'
 import { useSettings } from '../lib/useSettings'
 import { DEFAULT_SETTINGS } from '../lib/defaults'
-import { updateAt } from '../lib/arr'
-import { BUILTIN_KEYS, BUILTIN_LABELS } from '../lib/builtins'
+import { updateAt, moveBefore } from '../lib/arr'
+import { BUILTIN_LABELS } from '../lib/builtins'
+import { actionTokens, MORE } from '../lib/actions'
 import type { Settings, SearchEngine, CustomAction } from '../lib/types'
 import { LANGS, CURRENCIES } from '../lib/langs'
-import { PRESETS, appearanceStyle, hexToRgba, type Appearance, type PresetName } from '../lib/appearance'
+import {
+  PRESETS,
+  appearanceStyle,
+  hexToRgba,
+  type Appearance,
+  type PresetName,
+} from '../lib/appearance'
 import type { SelectionHandles } from '../lib/handles'
 import { Handle } from '../content/Handle'
 import { Section } from '../components/Section'
@@ -17,14 +24,19 @@ import { Select } from '../components/ui/Select'
 import { Switch } from '../components/ui/Switch'
 import { Row } from '../components/ui/Row'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { Toc } from './Toc'
 import { IconSearch, IconCopy, IconTranslate, IconBook } from '../content/icons'
 
-const swatch = 'h-7 w-10 shrink-0 cursor-pointer rounded-md border border-line bg-transparent disabled:opacity-40'
+const swatch =
+  'h-7 w-10 shrink-0 cursor-pointer rounded-md border border-line bg-transparent disabled:opacity-40'
 const slider = 'w-full accent-accent'
 
 export function Options() {
   const [s, setS] = useSettings()
   const [saved, setSaved] = useState(false)
+  // in-flight drag source + current drop-target index within the action list
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
+  const [overIdx, setOverIdx] = useState<number | null>(null)
   // storage snapshot as loaded; used to save only edited sections so a concurrent
   // write elsewhere (e.g. the popup toggling trigger.onSelection) isn't clobbered.
   const baseline = useRef<Settings | null>(null)
@@ -75,7 +87,9 @@ export function Options() {
     ])
 
   // --- custom actions ---
-  const setActions = (customActions: CustomAction[]) => update({ customActions })
+  // Reconcile the unified order on every change so new ids appear and stale ones drop.
+  const setActions = (customActions: CustomAction[]) =>
+    update({ customActions, actionOrder: actionTokens(s.actionOrder, customActions) })
   const addAction = (type: CustomAction['type']) =>
     setActions([
       ...s.customActions,
@@ -107,8 +121,18 @@ export function Options() {
   const setHandles = (patch: Partial<SelectionHandles>) =>
     update({ selectionHandles: { ...hh, ...patch } })
 
+  // --- unified action list (built-ins + custom + the ⋯ divider) ---
+  const tokens = actionTokens(s.actionOrder, s.customActions)
+  const moreIdx = tokens.indexOf(MORE)
+  const reorder = (to: number) => {
+    // Drop indicator is a top border on the hovered row, so the item lands
+    // before it (moveBefore handles the downward-drag off-by-one).
+    if (dragIdx !== null) update({ actionOrder: moveBefore(tokens, dragIdx, to) })
+    setDragIdx(null)
+  }
+
   return (
-    <div class="mx-auto max-w-2xl space-y-6 p-6">
+    <div class="mx-auto max-w-2xl p-6 lg:max-w-5xl">
       <header class="sticky top-0 z-10 -mx-6 flex items-center justify-between border-b border-line bg-canvas/80 px-6 py-3 backdrop-blur">
         <div>
           <h1 class="text-lg font-semibold text-ink">Select to Action</h1>
@@ -123,484 +147,577 @@ export function Options() {
         </div>
       </header>
 
-      <Section
-        title="Trigger"
-        divided
-        footnote="Context menu and the keyboard shortcut (Alt+S, editable at chrome://extensions/shortcuts) always work."
-      >
-        <Switch
-          label="Show popup automatically on text selection"
-          checked={s.trigger.onSelection}
-          onChange={(v) => update({ trigger: { onSelection: v } })}
-        />
-      </Section>
-
-      <Section title="Actions" desc="Which built-in actions appear in the popup.">
-        <div class="grid grid-cols-2 gap-x-4 gap-y-3">
-          {BUILTIN_KEYS.map((k) => (
-            <Switch
-              key={k}
-              label={BUILTIN_LABELS[k]}
-              checked={s.builtins[k]}
-              onChange={(v) => update({ builtins: { ...s.builtins, [k]: v } })}
-            />
-          ))}
-        </div>
-      </Section>
-
-      <Section
-        title="Appearance"
-        desc="Style the in-page selection popup. Changes preview live below."
-      >
-        <div class="grid gap-4 md:grid-cols-2">
-          <div class="space-y-3">
-            <Row label="Preset">
-              <Select value={a.preset} onChange={(e) => applyPreset(e.currentTarget.value as PresetName)}>
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
-                <option value="glass">Glass</option>
-                <option value="custom">Custom</option>
-              </Select>
-            </Row>
-
-            <div class="grid grid-cols-2 gap-2">
-              <Row label="Icon / text">
-                <input
-                  type="color"
-                  value={a.fg}
-                  onInput={(e) => setAppr({ fg: e.currentTarget.value })}
-                  class={swatch}
-                />
-              </Row>
-              <Row label="Accent">
-                <input
-                  type="color"
-                  value={a.accent}
-                  onInput={(e) => setAppr({ accent: e.currentTarget.value })}
-                  class={swatch}
-                />
-              </Row>
-              <Row label="Background">
-                <input
-                  type="color"
-                  value={a.bg}
-                  onInput={(e) => setAppr({ bg: e.currentTarget.value })}
-                  class={swatch}
-                />
-              </Row>
-              <Row label="Border color">
-                <input
-                  type="color"
-                  value={a.borderColor}
-                  disabled={!a.border}
-                  onInput={(e) => setAppr({ borderColor: e.currentTarget.value })}
-                  class={swatch}
-                />
-              </Row>
-            </div>
-
-            <label class="block text-sm text-ink">
-              Background opacity{' '}
-              <span class="text-muted">{Math.round(a.bgOpacity * 100)}%</span>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={a.bgOpacity}
-                onInput={(e) => setAppr({ bgOpacity: +e.currentTarget.value })}
-                class={slider}
-              />
-            </label>
-            <label class="block text-sm text-ink">
-              Background blur <span class="text-muted">{a.blur}px</span>
-              <input
-                type="range"
-                min="0"
-                max="30"
-                step="1"
-                value={a.blur}
-                onInput={(e) => setAppr({ blur: +e.currentTarget.value })}
-                class={slider}
-              />
-            </label>
-            <label class="block text-sm text-ink">
-              Roundness <span class="text-muted">{a.radius}px</span>
-              <input
-                type="range"
-                min="0"
-                max="24"
-                step="1"
-                value={a.radius}
-                onInput={(e) => setAppr({ radius: +e.currentTarget.value })}
-                class={slider}
-              />
-            </label>
-            <label class="block text-sm text-ink">
-              Size <span class="text-muted">{Math.round(a.scale * 100)}%</span>
-              <input
-                type="range"
-                min="0.8"
-                max="1.6"
-                step="0.05"
-                value={a.scale}
-                onInput={(e) => setAppr({ scale: +e.currentTarget.value })}
-                class={slider}
-              />
-            </label>
-
-            <div class="flex gap-6">
-              <Switch label="Border" checked={a.border} onChange={(v) => setAppr({ border: v })} />
-              <Switch label="Shadow" checked={a.shadow} onChange={(v) => setAppr({ shadow: v })} />
-            </div>
-
-            <div class="border-t border-line pt-3">
-              <div class="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Position</div>
-              <Row label="Anchor">
-                <Select
-                  value={a.anchor}
-                  onChange={(e) =>
-                    setAppr({ anchor: e.currentTarget.value as Appearance['anchor'] }, false)
-                  }
-                >
-                  <option value="auto">Auto</option>
-                  <option value="above">Above selection</option>
-                  <option value="below">Below selection</option>
-                </Select>
-              </Row>
-              <div class="mt-2 grid grid-cols-2 gap-2">
-                <Row label="Offset X">
-                  <Input
-                    type="number"
-                    value={a.offsetX}
-                    onInput={(e) => setAppr({ offsetX: +e.currentTarget.value || 0 }, false)}
-                    class="w-20"
-                  />
-                </Row>
-                <Row label="Offset Y">
-                  <Input
-                    type="number"
-                    value={a.offsetY}
-                    onInput={(e) => setAppr({ offsetY: +e.currentTarget.value || 0 }, false)}
-                    class="w-20"
-                  />
-                </Row>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="flex items-start justify-center rounded-lg p-6"
-            style={{
-              backgroundColor: '#0b1220',
-              backgroundImage:
-                'linear-gradient(45deg, #131c2e 25%, transparent 25%), linear-gradient(-45deg, #131c2e 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #131c2e 75%), linear-gradient(-45deg, transparent 75%, #131c2e 75%)',
-              backgroundSize: '20px 20px',
-              backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
-            }}
+      <div class="mt-6 lg:flex lg:gap-8">
+        <Toc />
+        <div class="space-y-6 lg:flex-1">
+          <Section
+            title="Trigger"
+            divided
+            footnote="Context menu and the keyboard shortcut (Alt+S, editable at chrome://extensions/shortcuts) always work."
           >
-            <div class="stp-panel w-max font-sans" style={appearanceStyle(a)}>
-              <div class="flex items-center gap-0.5 p-1">
-                <span class="stp-btn flex h-8 w-8 items-center justify-center">
-                  <IconSearch />
-                </span>
-                <span class="stp-btn flex h-8 w-8 items-center justify-center">
-                  <IconCopy />
-                </span>
-                <span class="stp-btn flex h-8 w-8 items-center justify-center">
-                  <IconTranslate />
-                </span>
-                <span class="stp-btn flex h-8 w-8 items-center justify-center">
-                  <IconBook />
-                </span>
-              </div>
-              <div class="px-3 py-2" style={{ borderTop: 'var(--stp-border)' }}>
-                <div class="stp-muted text-[11px] font-medium uppercase tracking-wide">
-                  English → Bengali
-                </div>
-                <div class="text-sm">নমুনা অনুবাদ</div>
-                <div class="stp-accent-text mt-0.5 text-[11px]">syn: sample, example</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      <Section
-        title="Selection handles"
-        desc="Mobile-style carets at each end of a selection; drag them to expand or shrink it. Changes preview live."
-      >
-        <div class="grid gap-4 md:grid-cols-2">
-          <div class="space-y-3">
             <Switch
-              label="Show drag handles on selection"
-              checked={hh.enabled}
-              onChange={(v) => setHandles({ enabled: v })}
+              label="Show popup automatically on text selection"
+              checked={s.trigger.onSelection}
+              onChange={(v) => update({ trigger: { onSelection: v } })}
             />
-            <Row label="Color">
-              <input
-                type="color"
-                value={hh.color}
-                disabled={!hh.enabled}
-                onInput={(e) => setHandles({ color: e.currentTarget.value })}
-                class={swatch}
-              />
-            </Row>
-            <label class="block text-sm text-ink">
-              Opacity <span class="text-muted">{Math.round(hh.opacity * 100)}%</span>
-              <input
-                type="range"
-                min="0.1"
-                max="1"
-                step="0.05"
-                value={hh.opacity}
-                disabled={!hh.enabled}
-                onInput={(e) => setHandles({ opacity: +e.currentTarget.value })}
-                class={slider}
-              />
-            </label>
-            <label class="block text-sm text-ink">
-              Thickness <span class="text-muted">{hh.thickness}px</span>
-              <input
-                type="range"
-                min="1"
-                max="6"
-                step="1"
-                value={hh.thickness}
-                disabled={!hh.enabled}
-                onInput={(e) => setHandles({ thickness: +e.currentTarget.value })}
-                class={slider}
-              />
-            </label>
-            <label class="block text-sm text-ink">
-              Size <span class="text-muted">{Math.round(hh.size * 100)}%</span>
-              <input
-                type="range"
-                min="0.5"
-                max="2"
-                step="0.05"
-                value={hh.size}
-                disabled={!hh.enabled}
-                onInput={(e) => setHandles({ size: +e.currentTarget.value })}
-                class={slider}
-              />
-            </label>
-          </div>
+          </Section>
 
-          <div
-            class="flex items-center justify-center rounded-lg p-6"
-            style={{
-              backgroundColor: '#0b1220',
-              backgroundImage:
-                'linear-gradient(45deg, #131c2e 25%, transparent 25%), linear-gradient(-45deg, #131c2e 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #131c2e 75%), linear-gradient(-45deg, transparent 75%, #131c2e 75%)',
-              backgroundSize: '20px 20px',
-              backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
-            }}
-          >
-            <div class="select-none font-sans text-base leading-[24px] text-white">
-              Drag the{' '}
-              <span
-                class="relative"
-                style={{ background: hexToRgba(hh.color, 0.28), padding: '0 1px' }}
-              >
-                <span style={{ position: 'absolute', left: '0', top: '0' }}>
-                  <Handle side="start" h={hh} height={24} />
-                </span>
-                selected text
-                <span style={{ position: 'absolute', right: '0', top: '0' }}>
-                  <Handle side="end" h={hh} height={24} />
-                </span>
-              </span>{' '}
-              to resize.
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      <Section
-        title="Search engines"
-        desc="Pick the default and toggle which are available."
-        footnote={
-          <>
-            Use <code>%s</code> where the selected text should go.
-          </>
-        }
-      >
-        <div class="space-y-2">
-          {s.search.engines.map((eng, i) => (
-            <div key={eng.id} class="flex items-center gap-2">
-              <input
-                type="radio"
-                name="default-engine"
-                checked={s.search.defaultEngineId === eng.id}
-                onChange={() => update({ search: { ...s.search, defaultEngineId: eng.id } })}
-                title="Set as default"
-                class="h-4 w-4 accent-accent"
-              />
-              <Input
-                class="w-28"
-                value={eng.name}
-                onInput={(e) =>
-                  setEngines(updateAt(s.search.engines, i, { name: e.currentTarget.value }))
-                }
-              />
-              <Input
-                class="flex-1"
-                value={eng.url}
-                placeholder="https://…/?q=%s"
-                onInput={(e) =>
-                  setEngines(updateAt(s.search.engines, i, { url: e.currentTarget.value }))
-                }
-              />
-              <Switch
-                title="Enabled"
-                checked={eng.enabled}
-                onChange={(v) => setEngines(updateAt(s.search.engines, i, { enabled: v }))}
-              />
-              <Button
-                variant="danger"
-                class="px-2"
-                title="Remove"
-                onClick={() => setEngines(s.search.engines.filter((_, j) => j !== i))}
-              >
-                ✕
-              </Button>
-            </div>
-          ))}
-        </div>
-        <Button variant="primary" onClick={addEngine}>
-          + Add engine
-        </Button>
-      </Section>
-
-      <Section title="Translate" divided>
-        <Row label="Target language">
-          <Select
-            value={s.translate.targetLang}
-            onChange={(e) =>
-              update({ translate: { ...s.translate, targetLang: e.currentTarget.value } })
+          <Section
+            title="Actions"
+            desc="One list for the popup. Drag to reorder; anything below the ⋯ divider shows in the overflow menu."
+            footnote={
+              <>
+                Custom URL: use <code>%s</code> for the selection. Custom JS: a function body with{' '}
+                <code>input</code> = <code>{'{ text, url, title }'}</code> in scope;{' '}
+                <code>return</code> a string (shown) or an <code>http(s)</code> URL (opened). Runs
+                sandboxed — no page or extension access.
+              </>
             }
           >
-            {LANGS.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.name}
-              </option>
-            ))}
-          </Select>
-        </Row>
-        <Switch
-          label="Open in a separate Google Translate window instead of inline"
-          checked={s.translate.openInWindow}
-          onChange={(v) => update({ translate: { ...s.translate, openInWindow: v } })}
-        />
-      </Section>
+            <div class="space-y-2">
+              {tokens.map((t, i) => {
+                const indent = i > moreIdx ? 'ml-6' : ''
+                const isSrc = dragIdx === i
+                // accent line marks where the item drops; source row dims while dragging
+                const dnd = `${overIdx === i && dragIdx !== null && !isSrc ? 'border-t-2 border-accent' : 'border-t-2 border-transparent'} ${isSrc ? 'opacity-40' : ''}`
+                const dragHandle = (
+                  <span
+                    draggable
+                    onDragStart={() => setDragIdx(i)}
+                    onDragEnd={() => {
+                      setDragIdx(null)
+                      setOverIdx(null)
+                    }}
+                    class="cursor-grab select-none px-1 text-muted"
+                    title="Drag to reorder"
+                  >
+                    ⠿
+                  </span>
+                )
+                const dropProps = {
+                  onDragOver: (e: DragEvent) => {
+                    e.preventDefault()
+                    if (overIdx !== i) setOverIdx(i)
+                  },
+                  onDrop: () => {
+                    reorder(i)
+                    setOverIdx(null)
+                  },
+                }
 
-      <Section title="Dictionary" divided>
-        <Row label="Language">
-          <Select
-            value={s.dictionary.lang}
-            onChange={(e) => update({ dictionary: { ...s.dictionary, lang: e.currentTarget.value } })}
-          >
-            {LANGS.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.name}
-              </option>
-            ))}
-          </Select>
-        </Row>
-      </Section>
+                if (t === MORE) {
+                  return (
+                    <div key="more" {...dropProps} class={`flex items-center gap-2 py-1 ${dnd}`}>
+                      <span class="h-px flex-1 bg-line" />
+                      <span class="text-xs font-medium uppercase tracking-wide text-muted">
+                        ⋯ Overflow menu
+                      </span>
+                      <Switch
+                        title="Enable overflow menu"
+                        checked={s.moreMenu}
+                        onChange={(v) => update({ moreMenu: v })}
+                      />
+                      <span class="h-px flex-1 bg-line" />
+                    </div>
+                  )
+                }
 
-      <Section
-        title="Currency"
-        desc="Rates from frankfurter.dev (ECB); currencies outside that set (e.g. BDT) use open.er-api.com. Source is auto-detected from the selection; base below is the fallback when none is found."
-        divided
-      >
-        <Row label="Fallback base">
-          <Select
-            value={s.currency.base}
-            onChange={(e) => update({ currency: { ...s.currency, base: e.currentTarget.value } })}
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </Select>
-        </Row>
-        <Row label="Convert to">
-          <Select
-            value={s.currency.target}
-            onChange={(e) => update({ currency: { ...s.currency, target: e.currentTarget.value } })}
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </Select>
-        </Row>
-      </Section>
+                if (t.startsWith('custom:')) {
+                  const ci = s.customActions.findIndex((a) => `custom:${a.id}` === t)
+                  const action = s.customActions[ci]
+                  if (!action) return null
+                  return (
+                    <div
+                      key={action.id}
+                      {...dropProps}
+                      class={`rounded-lg border border-line bg-surface-hover/50 p-2.5 ${indent} ${dnd}`}
+                    >
+                      <div class="flex items-center gap-2">
+                        {dragHandle}
+                        <Input
+                          class="w-40"
+                          value={action.name}
+                          onInput={(e) =>
+                            setActions(
+                              updateAt(s.customActions, ci, { name: e.currentTarget.value }),
+                            )
+                          }
+                        />
+                        <span class="rounded-md bg-surface-hover px-2 py-0.5 text-xs font-medium uppercase text-muted">
+                          {action.type}
+                        </span>
+                        <div class="ml-auto flex items-center gap-2">
+                          <Switch
+                            title="Enabled"
+                            checked={action.enabled}
+                            onChange={(v) =>
+                              setActions(updateAt(s.customActions, ci, { enabled: v }))
+                            }
+                          />
+                          <Button
+                            variant="danger"
+                            class="px-2"
+                            title="Remove"
+                            onClick={() => setActions(s.customActions.filter((_, j) => j !== ci))}
+                          >
+                            ✕
+                          </Button>
+                        </div>
+                      </div>
+                      <Textarea
+                        class="mt-2 h-16 w-full font-mono text-xs"
+                        value={action.template}
+                        onInput={(e) =>
+                          setActions(
+                            updateAt(s.customActions, ci, { template: e.currentTarget.value }),
+                          )
+                        }
+                      />
+                    </div>
+                  )
+                }
 
-      <Section
-        title="Custom actions"
-        desc="Add your own buttons: a URL template or a sandboxed JS snippet."
-        footnote={
-          <>
-            URL: use <code>%s</code> for the selection. JS: a function body with <code>input</code> ={' '}
-            <code>{'{ text, url, title }'}</code> in scope; <code>return</code> a string (shown) or an{' '}
-            <code>http(s)</code> URL (opened). Runs sandboxed — no page or extension access.
-          </>
-        }
-      >
-        <div class="space-y-3">
-          {s.customActions.map((action, i) => (
-            <div key={action.id} class="rounded-lg border border-line bg-surface-hover/50 p-2.5">
-              <div class="flex items-center gap-2">
-                <Input
-                  class="w-40"
-                  value={action.name}
-                  onInput={(e) =>
-                    setActions(updateAt(s.customActions, i, { name: e.currentTarget.value }))
-                  }
+                const k = t as keyof Settings['builtins']
+                return (
+                  <div
+                    key={k}
+                    {...dropProps}
+                    class={`flex items-center gap-2 rounded-md border border-line bg-surface-hover/50 p-2 ${indent} ${dnd}`}
+                  >
+                    {dragHandle}
+                    <span class="flex-1 text-sm text-ink">{BUILTIN_LABELS[k]}</span>
+                    <Switch
+                      title="Enabled"
+                      checked={s.builtins[k]}
+                      onChange={(v) => update({ builtins: { ...s.builtins, [k]: v } })}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+            <div class="mt-3 flex gap-2">
+              <Button variant="primary" onClick={() => addAction('url')}>
+                + URL action
+              </Button>
+              <Button variant="primary" onClick={() => addAction('js')}>
+                + JS action
+              </Button>
+            </div>
+          </Section>
+
+          <Section
+            title="Appearance"
+            desc="Style the in-page selection popup. Changes preview live below."
+          >
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="space-y-3">
+                <Row label="Preset">
+                  <Select
+                    value={a.preset}
+                    onChange={(e) => applyPreset(e.currentTarget.value as PresetName)}
+                  >
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="glass">Glass</option>
+                    <option value="custom">Custom</option>
+                  </Select>
+                </Row>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <Row label="Icon / text">
+                    <input
+                      type="color"
+                      value={a.fg}
+                      onInput={(e) => setAppr({ fg: e.currentTarget.value })}
+                      class={swatch}
+                    />
+                  </Row>
+                  <Row label="Accent">
+                    <input
+                      type="color"
+                      value={a.accent}
+                      onInput={(e) => setAppr({ accent: e.currentTarget.value })}
+                      class={swatch}
+                    />
+                  </Row>
+                  <Row label="Background">
+                    <input
+                      type="color"
+                      value={a.bg}
+                      onInput={(e) => setAppr({ bg: e.currentTarget.value })}
+                      class={swatch}
+                    />
+                  </Row>
+                  <Row label="Border color">
+                    <input
+                      type="color"
+                      value={a.borderColor}
+                      disabled={!a.border}
+                      onInput={(e) => setAppr({ borderColor: e.currentTarget.value })}
+                      class={swatch}
+                    />
+                  </Row>
+                </div>
+
+                <label class="block text-sm text-ink">
+                  Background opacity{' '}
+                  <span class="text-muted">{Math.round(a.bgOpacity * 100)}%</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={a.bgOpacity}
+                    onInput={(e) => setAppr({ bgOpacity: +e.currentTarget.value })}
+                    class={slider}
+                  />
+                </label>
+                <label class="block text-sm text-ink">
+                  Background blur <span class="text-muted">{a.blur}px</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="30"
+                    step="1"
+                    value={a.blur}
+                    onInput={(e) => setAppr({ blur: +e.currentTarget.value })}
+                    class={slider}
+                  />
+                </label>
+                <label class="block text-sm text-ink">
+                  Roundness <span class="text-muted">{a.radius}px</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="24"
+                    step="1"
+                    value={a.radius}
+                    onInput={(e) => setAppr({ radius: +e.currentTarget.value })}
+                    class={slider}
+                  />
+                </label>
+                <label class="block text-sm text-ink">
+                  Size <span class="text-muted">{Math.round(a.scale * 100)}%</span>
+                  <input
+                    type="range"
+                    min="0.8"
+                    max="1.6"
+                    step="0.05"
+                    value={a.scale}
+                    onInput={(e) => setAppr({ scale: +e.currentTarget.value })}
+                    class={slider}
+                  />
+                </label>
+
+                <div class="flex gap-6">
+                  <Switch
+                    label="Border"
+                    checked={a.border}
+                    onChange={(v) => setAppr({ border: v })}
+                  />
+                  <Switch
+                    label="Shadow"
+                    checked={a.shadow}
+                    onChange={(v) => setAppr({ shadow: v })}
+                  />
+                </div>
+
+                <div class="border-t border-line pt-3">
+                  <div class="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+                    Position
+                  </div>
+                  <Row label="Anchor">
+                    <Select
+                      value={a.anchor}
+                      onChange={(e) =>
+                        setAppr({ anchor: e.currentTarget.value as Appearance['anchor'] }, false)
+                      }
+                    >
+                      <option value="auto">Auto</option>
+                      <option value="above">Above selection</option>
+                      <option value="below">Below selection</option>
+                    </Select>
+                  </Row>
+                  <div class="mt-2 grid grid-cols-2 gap-2">
+                    <Row label="Offset X">
+                      <Input
+                        type="number"
+                        value={a.offsetX}
+                        onInput={(e) => setAppr({ offsetX: +e.currentTarget.value || 0 }, false)}
+                        class="w-20"
+                      />
+                    </Row>
+                    <Row label="Offset Y">
+                      <Input
+                        type="number"
+                        value={a.offsetY}
+                        onInput={(e) => setAppr({ offsetY: +e.currentTarget.value || 0 }, false)}
+                        class="w-20"
+                      />
+                    </Row>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="flex items-start justify-center rounded-lg p-6"
+                style={{
+                  backgroundColor: '#0b1220',
+                  backgroundImage:
+                    'linear-gradient(45deg, #131c2e 25%, transparent 25%), linear-gradient(-45deg, #131c2e 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #131c2e 75%), linear-gradient(-45deg, transparent 75%, #131c2e 75%)',
+                  backgroundSize: '20px 20px',
+                  backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
+                }}
+              >
+                <div class="stp-panel w-max font-sans" style={appearanceStyle(a)}>
+                  <div class="flex items-center gap-0.5 p-1">
+                    <span class="stp-btn flex h-8 w-8 items-center justify-center">
+                      <IconSearch />
+                    </span>
+                    <span class="stp-btn flex h-8 w-8 items-center justify-center">
+                      <IconCopy />
+                    </span>
+                    <span class="stp-btn flex h-8 w-8 items-center justify-center">
+                      <IconTranslate />
+                    </span>
+                    <span class="stp-btn flex h-8 w-8 items-center justify-center">
+                      <IconBook />
+                    </span>
+                  </div>
+                  <div class="px-3 py-2" style={{ borderTop: 'var(--stp-border)' }}>
+                    <div class="stp-muted text-[11px] font-medium uppercase tracking-wide">
+                      English → Bengali
+                    </div>
+                    <div class="text-sm">নমুনা অনুবাদ</div>
+                    <div class="stp-accent-text mt-0.5 text-[11px]">syn: sample, example</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            title="Selection handles"
+            desc="Mobile-style carets at each end of a selection; drag them to expand or shrink it. Changes preview live."
+          >
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="space-y-3">
+                <Switch
+                  label="Show drag handles on selection"
+                  checked={hh.enabled}
+                  onChange={(v) => setHandles({ enabled: v })}
                 />
-                <span class="rounded-md bg-surface-hover px-2 py-0.5 text-xs font-medium uppercase text-muted">
-                  {action.type}
-                </span>
-                <div class="ml-auto flex items-center gap-2">
+                <Row label="Color">
+                  <input
+                    type="color"
+                    value={hh.color}
+                    disabled={!hh.enabled}
+                    onInput={(e) => setHandles({ color: e.currentTarget.value })}
+                    class={swatch}
+                  />
+                </Row>
+                <label class="block text-sm text-ink">
+                  Opacity <span class="text-muted">{Math.round(hh.opacity * 100)}%</span>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1"
+                    step="0.05"
+                    value={hh.opacity}
+                    disabled={!hh.enabled}
+                    onInput={(e) => setHandles({ opacity: +e.currentTarget.value })}
+                    class={slider}
+                  />
+                </label>
+                <label class="block text-sm text-ink">
+                  Thickness <span class="text-muted">{hh.thickness}px</span>
+                  <input
+                    type="range"
+                    min="1"
+                    max="6"
+                    step="1"
+                    value={hh.thickness}
+                    disabled={!hh.enabled}
+                    onInput={(e) => setHandles({ thickness: +e.currentTarget.value })}
+                    class={slider}
+                  />
+                </label>
+                <label class="block text-sm text-ink">
+                  Size <span class="text-muted">{Math.round(hh.size * 100)}%</span>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="2"
+                    step="0.05"
+                    value={hh.size}
+                    disabled={!hh.enabled}
+                    onInput={(e) => setHandles({ size: +e.currentTarget.value })}
+                    class={slider}
+                  />
+                </label>
+              </div>
+
+              <div
+                class="flex items-center justify-center rounded-lg p-6"
+                style={{
+                  backgroundColor: '#0b1220',
+                  backgroundImage:
+                    'linear-gradient(45deg, #131c2e 25%, transparent 25%), linear-gradient(-45deg, #131c2e 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #131c2e 75%), linear-gradient(-45deg, transparent 75%, #131c2e 75%)',
+                  backgroundSize: '20px 20px',
+                  backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
+                }}
+              >
+                <div class="select-none font-sans text-base leading-[24px] text-white">
+                  Drag the{' '}
+                  <span
+                    class="relative"
+                    style={{ background: hexToRgba(hh.color, 0.28), padding: '0 1px' }}
+                  >
+                    <span style={{ position: 'absolute', left: '0', top: '0' }}>
+                      <Handle side="start" h={hh} height={24} />
+                    </span>
+                    selected text
+                    <span style={{ position: 'absolute', right: '0', top: '0' }}>
+                      <Handle side="end" h={hh} height={24} />
+                    </span>
+                  </span>{' '}
+                  to resize.
+                </div>
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            title="Search engines"
+            desc="Pick the default and toggle which are available."
+            footnote={
+              <>
+                Use <code>%s</code> where the selected text should go.
+              </>
+            }
+          >
+            <div class="space-y-2">
+              {s.search.engines.map((eng, i) => (
+                <div key={eng.id} class="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="default-engine"
+                    checked={s.search.defaultEngineId === eng.id}
+                    onChange={() => update({ search: { ...s.search, defaultEngineId: eng.id } })}
+                    title="Set as default"
+                    class="h-4 w-4 accent-accent"
+                  />
+                  <Input
+                    class="w-28"
+                    value={eng.name}
+                    onInput={(e) =>
+                      setEngines(updateAt(s.search.engines, i, { name: e.currentTarget.value }))
+                    }
+                  />
+                  <Input
+                    class="flex-1"
+                    value={eng.url}
+                    placeholder="https://…/?q=%s"
+                    onInput={(e) =>
+                      setEngines(updateAt(s.search.engines, i, { url: e.currentTarget.value }))
+                    }
+                  />
                   <Switch
                     title="Enabled"
-                    checked={action.enabled}
-                    onChange={(v) => setActions(updateAt(s.customActions, i, { enabled: v }))}
+                    checked={eng.enabled}
+                    onChange={(v) => setEngines(updateAt(s.search.engines, i, { enabled: v }))}
                   />
                   <Button
                     variant="danger"
                     class="px-2"
                     title="Remove"
-                    onClick={() => setActions(s.customActions.filter((_, j) => j !== i))}
+                    onClick={() => setEngines(s.search.engines.filter((_, j) => j !== i))}
                   >
                     ✕
                   </Button>
                 </div>
-              </div>
-              <Textarea
-                class="mt-2 h-16 w-full font-mono text-xs"
-                value={action.template}
-                onInput={(e) =>
-                  setActions(updateAt(s.customActions, i, { template: e.currentTarget.value }))
-                }
-              />
+              ))}
             </div>
-          ))}
+            <Button variant="primary" onClick={addEngine}>
+              + Add engine
+            </Button>
+          </Section>
+
+          <Section title="Translate" divided>
+            <Row label="Target language">
+              <Select
+                value={s.translate.targetLang}
+                onChange={(e) =>
+                  update({ translate: { ...s.translate, targetLang: e.currentTarget.value } })
+                }
+              >
+                {LANGS.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.name}
+                  </option>
+                ))}
+              </Select>
+            </Row>
+            <Switch
+              label="Open in a separate Google Translate window instead of inline"
+              checked={s.translate.openInWindow}
+              onChange={(v) => update({ translate: { ...s.translate, openInWindow: v } })}
+            />
+          </Section>
+
+          <Section title="Dictionary" divided>
+            <Row label="Language">
+              <Select
+                value={s.dictionary.lang}
+                onChange={(e) =>
+                  update({ dictionary: { ...s.dictionary, lang: e.currentTarget.value } })
+                }
+              >
+                {LANGS.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.name}
+                  </option>
+                ))}
+              </Select>
+            </Row>
+          </Section>
+
+          <Section
+            title="Currency"
+            desc="Rates from frankfurter.dev (ECB); currencies outside that set (e.g. BDT) use open.er-api.com. Source is auto-detected from the selection; base below is the fallback when none is found."
+            divided
+          >
+            <Row label="Fallback base">
+              <Select
+                value={s.currency.base}
+                onChange={(e) =>
+                  update({ currency: { ...s.currency, base: e.currentTarget.value } })
+                }
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            </Row>
+            <Row label="Convert to">
+              <Select
+                value={s.currency.target}
+                onChange={(e) =>
+                  update({ currency: { ...s.currency, target: e.currentTarget.value } })
+                }
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            </Row>
+          </Section>
         </div>
-        <div class="flex gap-2">
-          <Button variant="primary" onClick={() => addAction('url')}>
-            + URL action
-          </Button>
-          <Button variant="primary" onClick={() => addAction('js')}>
-            + JS action
-          </Button>
-        </div>
-      </Section>
+      </div>
     </div>
   )
 }
