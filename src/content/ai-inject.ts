@@ -29,6 +29,15 @@ async function waitAndFill(def: AiTargetDef, prompt: string) {
   setInputValue(input, prompt)
 }
 
+/** First element matching any selector, tried in priority order. */
+function queryFirst<T extends Element>(selectors: string[]): T | null {
+  for (const sel of selectors) {
+    const el = document.querySelector<T>(sel)
+    if (el) return el
+  }
+  return null
+}
+
 function setInputValue(el: HTMLElement, value: string) {
   el.focus()
   if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) {
@@ -45,21 +54,23 @@ function setInputValue(el: HTMLElement, value: string) {
   }
 }
 
-function waitFor<T extends Element>(selector: string, timeout: number): Promise<T | null> {
+function waitFor<T extends Element>(selectors: string[], timeout: number): Promise<T | null> {
   return new Promise((resolve) => {
-    const found = document.querySelector<T>(selector)
+    const found = queryFirst<T>(selectors)
     if (found) return resolve(found)
+    let timer = 0
     const obs = new MutationObserver(() => {
-      const el = document.querySelector<T>(selector)
+      const el = queryFirst<T>(selectors)
       if (el) {
+        clearTimeout(timer)
         obs.disconnect()
         resolve(el)
       }
     })
     obs.observe(document.documentElement, { childList: true, subtree: true })
-    setTimeout(() => {
+    timer = self.setTimeout(() => {
       obs.disconnect()
-      resolve(document.querySelector<T>(selector))
+      resolve(queryFirst<T>(selectors))
     }, timeout)
   })
 }
