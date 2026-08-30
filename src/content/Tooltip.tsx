@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'preact/compat'
-import { useState, useEffect } from 'preact/hooks'
+import { useState, useEffect, useRef } from 'preact/hooks'
 import type { ComponentType, JSX } from 'preact'
 import { store } from './store'
 import { Result } from './Result'
@@ -17,6 +17,7 @@ import {
   IconTranslate,
   IconBook,
   IconCurrency,
+  IconCount,
   IconBolt,
   IconClose,
   IconGrip,
@@ -69,19 +70,26 @@ const BUILTIN_ICONS: Record<BuiltinKey, ComponentType<Record<string, unknown>>> 
   translate: IconTranslate,
   dictionary: IconBook,
   currency: IconCurrency,
+  count: IconCount,
 }
 
 export function Tooltip() {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot)
   const [expanded, setExpanded] = useState(false)
+  // Cancels the 2s hover timer that expands the Search engine picker.
+  const engineTimer = useRef<number | undefined>(undefined)
   // Tooltip stays mounted (returns null when closed), so reset the overflow state
   // on close or it reopens already-expanded on the next selection.
   useEffect(() => {
-    if (!state.open) setExpanded(false)
+    if (!state.open) {
+      setExpanded(false)
+      clearTimeout(engineTimer.current)
+    }
   }, [state.open])
   if (!state.open || !state.settings) return null
 
   const s = state.settings
+  const enabledEngines = s.search.engines.filter((e) => e.enabled)
   const showPanel = state.view.kind !== 'buttons'
   const menuOn = s.moreMenu
 
@@ -137,9 +145,29 @@ export function Tooltip() {
 
   const showToggle = menuOn && overflowItems.length > 0
 
+  // Search button: click runs the default engine; hovering for 2s expands the panel
+  // into an engine picker (same panel area translate/dictionary results use).
+  const renderSearch = (it: Item) => (
+    <span
+      key={it.id}
+      class="flex"
+      onMouseEnter={() => {
+        clearTimeout(engineTimer.current)
+        engineTimer.current = window.setTimeout(() => store.showEngines(), 2000)
+      }}
+      onMouseLeave={() => clearTimeout(engineTimer.current)}
+    >
+      <Btn title={it.label} onClick={it.run}>
+        <it.Icon width={16} height={16} />
+      </Btn>
+    </span>
+  )
+
   // Icon-only action button; copy shows a green check while the copied flag is set.
   const renderItem = (it: Item) =>
-    it.isCopy && state.copied ? (
+    it.id === 'search' && enabledEngines.length > 1 ? (
+      renderSearch(it)
+    ) : it.isCopy && state.copied ? (
       <button
         key={it.id}
         type="button"
@@ -151,7 +179,11 @@ export function Tooltip() {
       </button>
     ) : (
       <Btn key={it.id} title={it.label} onClick={it.run}>
-        {it.iconMarkup ? <SvgIcon markup={it.iconMarkup} /> : <it.Icon />}
+        {it.iconMarkup ? (
+          <SvgIcon markup={it.iconMarkup} size={16} />
+        ) : (
+          <it.Icon width={16} height={16} />
+        )}
       </Btn>
     )
 
@@ -210,6 +242,22 @@ export function Tooltip() {
             class="stp-divider-top stp-expand max-h-72 overflow-auto px-3 py-2"
             style={{ borderTop: 'var(--stp-border)' }}
           >
+            {state.view.kind === 'engines' && (
+              <div class="flex flex-col gap-0.5">
+                {enabledEngines.map((eng) => (
+                  <button
+                    key={eng.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => store.searchWith(eng.id)}
+                    class="stp-btn flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-left text-xs"
+                  >
+                    <IconSearch width={14} height={14} />
+                    {eng.name}
+                  </button>
+                ))}
+              </div>
+            )}
             {state.view.kind === 'loading' && (
               <div class="stp-muted text-xs">{state.view.label}</div>
             )}

@@ -10,6 +10,10 @@ import type {
   DictionaryResult,
   CurrencyResult,
 } from '../lib/messages'
+import { countText, type CountResult } from '../lib/count'
+import { pickSearchEngine } from '../lib/search'
+import { hasAiPermission, requestAiPermission } from '../lib/ai-permissions'
+import { googleTranslateUrl } from '../lib/translate-url'
 import { runJsAction } from './run-js'
 import { getEndpointRects } from './selection'
 import { sameGeom, type SelGeom } from '../lib/handles'
@@ -44,10 +48,12 @@ export type ResultView =
   | { kind: 'translate'; data: TranslateResult }
   | { kind: 'dictionary'; data: DictionaryResult }
   | { kind: 'currency'; data: CurrencyResult }
+  | { kind: 'count'; data: CountResult }
   | { kind: 'text'; title: string; body: string }
 
 export type View =
   | { kind: 'buttons' }
+  | { kind: 'engines' }
   | { kind: 'loading'; label: string }
   | { kind: 'error'; message: string }
   | { kind: 'result'; result: ResultView }
@@ -177,7 +183,7 @@ class Store {
     if (v.kind !== 'result') return
     const kind = v.result.kind
     // 'text' results come from custom actions (possible side effects) — don't auto-rerun.
-    if (kind === 'translate' || kind === 'dictionary' || kind === 'currency')
+    if (kind === 'translate' || kind === 'dictionary' || kind === 'currency' || kind === 'count')
       void this.perform(kind)
   }
 
@@ -205,6 +211,23 @@ class Store {
     return res.data
   }
 
+  /** Expand the panel into the engine picker (only from the default buttons view). */
+  showEngines() {
+    if (this.state.view.kind === 'buttons') this.set({ view: { kind: 'engines' } })
+  }
+
+  /** Open a search in a new tab; `engineId` picks a specific engine, else the default. Returns false if no engine/text. */
+  searchWith(engineId?: string): boolean {
+    const s = this.state.settings
+    const text = this.state.text.trim()
+    if (!s || !text) return false
+    const eng = pickSearchEngine(s.search.engines, s.search.defaultEngineId, engineId)
+    if (!eng) return false
+    window.open(eng.url.replace('%s', encodeURIComponent(text)), '_blank', 'noopener,noreferrer')
+    this.hide()
+    return true
+  }
+
   async perform(action: string, textOverride?: string) {
     const s = this.state.settings
     const text = (textOverride ?? this.state.text).trim()
@@ -217,11 +240,7 @@ class Store {
 
       switch (action) {
         case 'search': {
-          const eng =
-            s.search.engines.find((e) => e.id === s.search.defaultEngineId) ?? s.search.engines[0]
-          if (!eng) throw new Error('No search engine configured')
-          window.open(eng.url.replace('%s', encodeURIComponent(text)), '_blank')
-          this.hide()
+          if (!this.searchWith()) throw new Error('No search engine configured')
           return
         }
         case 'copy': {
@@ -235,12 +254,8 @@ class Store {
         }
         case 'translate': {
           if (s.translate.openInWindow) {
-            const url = `https://translate.google.com/?sl=auto&tl=${s.translate.targetLang}&text=${encodeURIComponent(text)}&op=translate`
-            const w = 800
-            const h = 600
-            const left = Math.max(0, (screen.width - w) / 2)
-            const top = Math.max(0, (screen.height - h) / 2)
-            window.open(url, 'Translate', `width=${w},height=${h},left=${left},top=${top}`)
+            const url = googleTranslateUrl(text, s.translate.targetLang)
+            window.open(url, 'Translate', popupFeatures(800, 600, screen.width, screen.height))
             this.hide()
             return
           }
@@ -273,6 +288,10 @@ class Store {
           this.set({ view: { kind: 'result', result: { kind: 'currency', data } } })
           return
         }
+        case 'count': {
+          this.set({ view: { kind: 'result', result: { kind: 'count', data: countText(text) } } })
+          return
+        }
       }
     } catch (e) {
       this.set({ view: { kind: 'error', message: e instanceof Error ? e.message : String(e) } })
@@ -290,6 +309,26 @@ class Store {
     if (!def) return
     const url = surfaceUrl(def, renderPrompt(action.template, text))
 
+    // Framed surfaces (iframe/sidebar) need the AI host permission so the
+    // background DNR rule can strip X-Frame-Options/CSP; without the grant the
+    // frame renders blank. Hosts are optional and granted on demand (the default
+    // Claude action ships enabled+sidebar with no grant on a fresh install).
+    // Check `contains` first: it consumes no user gesture, so the already-granted
+    // path preserves the click's transient activation for the background's
+    // sidePanel.open (OPEN_AI). Only prompt (spending the gesture) when not yet
+    // granted; fall back to a plain tab if the user declines. On the very first
+    // sidebar use the prompt spends the gesture and sidePanel.open would reject,
+    // so background falls back to a tab that once — the grant then persists.
+    if (action.mode === 'iframe' || action.mode === 'sidebar') {
+      const granted =
+        (await hasAiPermission(action.target)) || (await requestAiPermission(action.target))
+      if (!granted) {
+        window.open(url, '_blank', 'noopener,noreferrer')
+        this.hide()
+        return
+      }
+    }
+
     if (action.mode === 'iframe') {
       this.set({ preview: { target: action.target, url, win: action.window } })
       return
@@ -304,7 +343,7 @@ class Store {
       })
     } catch {
       // background asleep / navigated away — open a plain tab as a last resort
-      window.open(url, '_blank')
+      window.open(url, '_blank', 'noopener,noreferrer')
     }
     this.hide()
   }
@@ -315,8 +354,10 @@ class Store {
 
   /** Persist the iframe window's size/position back to its AI action. */
   async saveAiWindow(target: AiTarget, patch: Partial<AiWindow>) {
-    const s = this.state.settings
-    if (!s) return
+    // Re-read fresh: setSettings sends the whole aiActions array and deepMerge
+    // replaces it wholesale, so building from the cached state could clobber an
+    // aiActions edit made in another context (Options) since this frame loaded.
+    const s = await getSettings()
     const i = s.aiActions.findIndex((a) => a.target === target)
     if (i < 0) return
     const aiActions = updateAt(s.aiActions, i, {
@@ -332,7 +373,7 @@ class Store {
       // domains, so arbitrary custom URLs that block framing show blank in the panel.
       void chrome.runtime
         .sendMessage({ type: 'OPEN_AI', url, mode: 'sidebar' })
-        .catch(() => window.open(url, '_blank'))
+        .catch(() => window.open(url, '_blank', 'noopener,noreferrer'))
       return
     }
     const size = popupSize(mode)
@@ -340,7 +381,7 @@ class Store {
       window.open(url, '_blank', popupFeatures(size.w, size.h, screen.width, screen.height))
       return
     }
-    window.open(url, '_blank')
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   private async runCustom(id: string, text: string, s: Settings, seq: number) {

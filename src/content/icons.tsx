@@ -48,6 +48,11 @@ export const IconCurrency = (p: P) => (
     <path d="M12 6v1.5M12 16.5V18" />
   </svg>
 )
+export const IconCount = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" />
+  </svg>
+)
 export const IconBolt = (p: P) => (
   <svg {...base} {...p}>
     <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
@@ -94,13 +99,13 @@ export const IconMoon = (p: P) => (
 )
 
 // AI targets: real brand logos from react-icons. Monochrome (currentColor) so
-// they inherit --stp-fg, sized 16px to match the built-in icons above (react-icons
-// default to 1em, which renders smaller than the fixed-16 local icons).
+// they inherit --stp-fg, sized in em so they scale with font-size. Callers that
+// need a fixed pixel size (e.g. the tooltip bar) pass explicit width/height.
 import { BsClaude } from 'react-icons/bs'
 import { PiOpenAiLogo } from 'react-icons/pi'
 import { RiGrokAiFill, RiGeminiLine } from 'react-icons/ri'
 
-const ai = (Brand: (p: P) => JSX.Element) => (p: P) => <Brand width={16} height={16} {...p} />
+const ai = (Brand: (p: P) => JSX.Element) => (p: P) => <Brand width="1em" height="1em" {...p} />
 
 export const IconClaude = ai(BsClaude as unknown as (p: P) => JSX.Element)
 export const IconChatGPT = ai(PiOpenAiLogo as unknown as (p: P) => JSX.Element)

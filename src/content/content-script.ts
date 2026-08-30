@@ -86,7 +86,8 @@ chrome.runtime.onMessage.addListener((msg: Command) => {
     const x = s?.x ?? Math.round(window.innerWidth / 2) - TOOLTIP_W / 2
     const y = s?.y ?? 80
     store.showButtons(text, x, y)
-    if (msg.action.startsWith('ai:')) void store.performAi(msg.action.slice('ai:'.length) as AiTarget)
+    if (msg.action.startsWith('ai:'))
+      void store.performAi(msg.action.slice('ai:'.length) as AiTarget)
     else void store.perform(msg.action, text)
   }
 })

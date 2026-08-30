@@ -43,7 +43,8 @@ export function anchorFor(
 
   let y: number
   if (a?.anchor === 'below') y = below
-  else if (a?.anchor === 'above') y = above
+  else if (a?.anchor === 'above')
+    y = above < 8 ? below : above // clamp off-screen top
   else y = above < 8 ? below : above // auto
 
   const w = a?.maxWidth ?? TOOLTIP_W

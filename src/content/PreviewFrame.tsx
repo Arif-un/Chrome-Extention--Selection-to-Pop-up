@@ -3,12 +3,16 @@ import { useEffect, useRef, useState } from 'preact/hooks'
 import type { JSX } from 'preact'
 import { store } from './store'
 import { hexToRgba } from '../lib/appearance'
-import { aiTarget } from '../lib/ai-targets'
+import { aiTarget, wrappedFrameUrl } from '../lib/ai-targets'
 import { IconClose, IconGrip } from './icons'
 
 /**
  * In-page AI window (iframe mode). Draggable by its header, resizable from the
  * bottom-right corner. Size/position persist back to the action on release.
+ *
+ * The AI is NOT framed directly (that would be page-origin-initiated and the
+ * scoped DNR strip wouldn't fire). It's nested through our extension side-panel
+ * page via wrappedFrameUrl, so the AI frame's initiator is the extension origin.
  *
  * ponytail: the framed AI is a logged-OUT, 3rd-party context (SameSite cookies
  * don't cross the frame) and some sites JS-bust out of frames anyway — that
@@ -124,7 +128,7 @@ export function PreviewFrame() {
         </button>
       </header>
       <iframe
-        src={p.url}
+        src={wrappedFrameUrl(chrome.runtime.getURL('src/sidepanel/index.html'), p.url)}
         title={def?.label ?? 'AI'}
         class="flex-1 border-0"
         style={{ pointerEvents: busy ? 'none' : 'auto', background: '#fff' }}
