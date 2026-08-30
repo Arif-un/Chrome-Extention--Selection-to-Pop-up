@@ -37,7 +37,9 @@ export async function resolveIcon(input: string): Promise<string> {
   const src = input.trim()
   if (!src) throw new Error('Paste an SVG URL or markup.')
 
-  if (src.startsWith('<svg') || src.startsWith('<?xml')) return sanitizeSvg(src)
+  // Any markup (starts with '<', e.g. <svg, <?xml, <!--, <!DOCTYPE) is inline;
+  // sanitizeSvg rejects it if no <svg survives. URLs never start with '<'.
+  if (src.startsWith('<')) return sanitizeSvg(src)
   if (src.startsWith('data:image/svg+xml')) return sanitizeSvg(decodeDataUrl(src))
 
   return sanitizeSvg(await fetchSvg(src))

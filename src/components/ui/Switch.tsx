@@ -25,7 +25,7 @@ export function Switch({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       class={cn(
-        'relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors disabled:opacity-40',
+        'relative h-[22px] w-[38px] shrink-0 cursor-pointer rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40',
         checked ? 'bg-accent' : 'bg-black/15 dark:bg-white/20',
       )}
     >
