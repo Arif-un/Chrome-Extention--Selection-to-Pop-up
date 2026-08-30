@@ -28,7 +28,12 @@ Package manager: **pnpm**.
 | `pnpm check` | Pre-commit gate: format + lint + test + build. |
 | `pnpm zip` | Build + zip `dist/` for store upload. |
 
-**Before every commit: run `pnpm check` and ensure coverage stays 90%+.**
+**Before every commit: run `pnpm check`.** Keep coverage 90%+ on the logic
+modules in `src/lib/` and `src/services/` (checked with `pnpm vitest run
+--coverage`). UI files (`content`/`popup`/`options`/`components`) are largely
+untested by design, so whole-repo coverage is much lower — do not read the "All
+files" number as the gate. Any new/changed `lib`/`services` module ships with a
+`tests/<module>.test.ts`.
 
 ## Layout (`src/`)
 
@@ -54,6 +59,47 @@ perms cover the translate / currency / dictionary APIs plus the AI assistant hos
 - **DRY.** Reuse existing `lib` helpers and `types.ts` before writing new code — no duplicated action, lang, or settings logic. Use `cn()` for class composition.
 - **Preact, not React.** Import from `preact`; `react`/`react-dom` are aliased to `preact/compat`. TS is strict — no shortcuts around it.
 - **Style is Prettier-authoritative:** no semicolons, single quotes, 100 cols, trailing commas. Keep ESLint clean.
+
+## Backward compatibility — DO NOT break existing users on update
+
+Users carry state across updates. Every install already has a stored `settings`
+object (one key in `chrome.storage.sync`) plus custom actions, AI actions, and
+search engines they configured. Breaking any of the following silently corrupts
+or resets live user data on the next auto-update. Treat these as hard rules.
+
+- **Settings load = one-way `deepMerge(DEFAULT_SETTINGS, stored)` + schema bump**
+  (`lib/settings.ts:68`). It only *backfills* missing object/scalar fields and
+  *overlays* stored values. It does **not** reshape, rename, coerce, or validate
+  types. There is no per-version migration framework.
+- **Any schema change bumps `SCHEMA_VERSION`** (`lib/defaults.ts:59`). Adding a
+  new field to `Settings` (`lib/types.ts`) with a default is safe — deepMerge
+  backfills it. Nothing else is automatic.
+- **Never rename or remove a field's type.** Changing a scalar to an object (or
+  vice-versa) passes the stored old-typed value through unvalidated and new code
+  reads the wrong type. If you must reshape a field, add an explicit migration
+  step in `getSettings` keyed on the stored `schema` — deepMerge won't do it.
+- **New defaults inside an ARRAY do not reach existing users automatically.**
+  deepMerge replaces arrays wholesale with the stored value. Only
+  `search.engines` has append logic (`ENGINE_SINCE` gating, `settings.ts:73-79`,
+  `defaults.ts:54-57`) so a new default engine reaches old installs without
+  resurrecting one the user deleted. `aiActions` and `customActions` have **no**
+  such append — a new entry added to `DEFAULT_AI_ACTIONS` will never appear for
+  existing users. Add a matching `since`-append when you ship new array defaults.
+- **Never rename a builtin key or the `ai:`/`custom:`/`__more__` action-token
+  prefixes.** The context-menu ↔ content routing contract is the stringly-typed
+  action token (`store.ts`, `service-worker.ts`, `lib/actions.ts`), outside the
+  type system — a rename breaks routing with zero compiler help. `actionTokens`
+  (`lib/actions.ts`) self-heals order (drops stale tokens, appends new ones
+  before `__more__`), so add builtins there, don't reorder the token grammar.
+- **`chrome.storage.sync` is ~8KB/item.** All settings share one key. Options
+  surfaces `QUOTA_BYTES_PER_ITEM` rejections; other writers (`content/store.ts`,
+  `popup/Popup.tsx`) do not — don't add large fields to the synced blob.
+- **Manifest changes gate updates.** Adding a `permissions` entry or narrowing
+  `host_permissions` in `manifest.config.ts` can disable the extension pending
+  user re-consent or drop granted hosts. Prefer optional permissions requested
+  at runtime (`lib/ai-permissions.ts`) over widening manifest perms.
+- **Legacy MV2 migration (`migrateLegacy`, `settings.ts:36-63`) runs once, only
+  when no `settings` key exists.** Leave it in place.
 
 ## Gotchas
 
