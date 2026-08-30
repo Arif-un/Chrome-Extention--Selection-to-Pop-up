@@ -9,6 +9,7 @@ export const BUILTIN_LABELS: Record<BuiltinKey, string> = {
   translate: 'Translate',
   dictionary: 'Dictionary',
   currency: 'Currency',
+  count: 'Count',
 }
 
 export const BUILTIN_KEYS = Object.keys(BUILTIN_LABELS) as BuiltinKey[]
