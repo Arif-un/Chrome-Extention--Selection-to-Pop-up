@@ -30,7 +30,7 @@
     "@types/chrome": "^0.0.287",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
-    "@vitest/coverage-v8": "^2.1.9",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^9.15.0",
     "eslint-config-prettier": "^9.1.0",
     "jsdom": "^25.0.1",
@@ -38,7 +38,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5.7.2",
     "vite": "^8.0.0",
-    "vitest": "^2.1.6"
+    "vitest": "^4.1.11"
   },
   "allowScripts": {
     "esbuild@0.28.2": true,
