@@ -1,6 +1,5 @@
 <div align="center">
 
-<!-- TODO(assets): swap in the new logo after it lands on master. -->
 <img src="src/assets/icons/select-logo-128.png" alt="Select to Action logo" width="96" height="96" />
 
 # Select to Action
@@ -17,8 +16,7 @@ No copy-pasting. No new tabs. No breaking your flow.
 
 **[⬇️ Install from the Chrome Web Store](https://chromewebstore.google.com/detail/selection-to-popup/ehiiodgjjgibclbmfbiflepipnlmbkkc)**
 
-<!-- TODO(assets): replace with the refreshed hero screenshot after it lands on master. -->
-<img src="screenshots/ss1.png" alt="Select to Action in action" width="640" />
+<img src="screenshots/banner.png" alt="Select to Action in action" width="640" />
 
 </div>
 
