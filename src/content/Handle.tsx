@@ -40,6 +40,8 @@ export function Handle({
           height: `${bulb}px`,
           background: color,
           borderRadius: radius,
+          // Options page forces corner-shape: squircle globally; keep the bulb round.
+          cornerShape: 'round',
         }}
       />
     </>

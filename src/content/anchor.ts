@@ -21,7 +21,8 @@ export function anchorFor(
 
   // Selection completed by mouse: anchor near the release point.
   if (cursor) {
-    const x = Math.max(8, Math.min(cursor.x + (a?.offsetX ?? 0), window.innerWidth - TOOLTIP_W))
+    const w = a?.maxWidth ?? TOOLTIP_W
+    const x = Math.max(8, Math.min(cursor.x + (a?.offsetX ?? 0), window.innerWidth - w))
     const above = cursor.y - TOOLTIP_H - 6
     const below = cursor.y + 12
     // 'above' near the top would clip off-screen; fall back to below like the
@@ -45,7 +46,8 @@ export function anchorFor(
   else if (a?.anchor === 'above') y = above
   else y = above < 8 ? below : above // auto
 
-  const x = Math.max(8, Math.min(left + (a?.offsetX ?? 0), window.innerWidth - TOOLTIP_W))
+  const w = a?.maxWidth ?? TOOLTIP_W
+  const x = Math.max(8, Math.min(left + (a?.offsetX ?? 0), window.innerWidth - w))
   y += a?.offsetY ?? 0
   return { text: t, x, y }
 }

@@ -2,8 +2,11 @@ import { render, h, Fragment } from 'preact'
 import { store } from './store'
 import { Tooltip } from './Tooltip'
 import { Handles } from './Handles'
+import { PreviewFrame } from './PreviewFrame'
+import { maybeInjectPrompt } from './ai-inject'
 import { anchorFor } from './anchor'
 import type { Command } from '../lib/messages'
+import type { AiTarget } from '../lib/ai-targets'
 // Compiled Tailwind CSS as a string, injected into the shadow root for isolation.
 import css from './tooltip.css?inline'
 
@@ -30,7 +33,7 @@ function mount() {
 
   const app = document.createElement('div')
   shadow.appendChild(app)
-  render(h(Fragment, null, h(Tooltip, {}), h(Handles, {})), app)
+  render(h(Fragment, null, h(Tooltip, {}), h(Handles, {}), h(PreviewFrame, {})), app)
 }
 
 // Show buttons on selection (if enabled). A mouse handle-drag ends with a
@@ -83,8 +86,12 @@ chrome.runtime.onMessage.addListener((msg: Command) => {
     const x = s?.x ?? Math.round(window.innerWidth / 2) - TOOLTIP_W / 2
     const y = s?.y ?? 80
     store.showButtons(text, x, y)
-    void store.perform(msg.action, text)
+    if (msg.action.startsWith('ai:')) void store.performAi(msg.action.slice('ai:'.length) as AiTarget)
+    else void store.perform(msg.action, text)
   }
 })
+
+// If this page/frame is an AI target opened with a hash-carried prompt, fill + send it.
+maybeInjectPrompt()
 
 void store.init().then(mount)

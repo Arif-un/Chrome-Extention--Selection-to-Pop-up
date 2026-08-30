@@ -18,8 +18,11 @@
   --color-accent: var(--ui-accent);
   --color-accent-hover: var(--ui-accent-hover);
   --color-danger: var(--ui-danger);
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --radius-xl: 1.35rem;
+  --radius-lg: 0.85rem;
+  --radius-md: 0.65rem;
+  --radius-sm: 0.45rem;
 }
 
 :root {
@@ -45,6 +48,15 @@
   --ui-accent: #007aff;
   --ui-accent-hover: #3395ff;
   --ui-danger: #ff453a;
+}
+
+/* Enforce squircle (superellipse) corners on the popup/options pages. Native CSS
+   corner-shape (Chrome 139+) only affects elements with a border-radius, so this
+   is a no-op on square elements. NOT imported into the shadow tooltip. */
+*,
+*::before,
+*::after {
+  corner-shape: squircle;
 }
 
 body {

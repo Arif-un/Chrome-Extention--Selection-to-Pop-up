@@ -1,11 +1,12 @@
-import { useRef, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { setSettings } from '../lib/settings'
 import { useSettings } from '../lib/useSettings'
 import { DEFAULT_SETTINGS } from '../lib/defaults'
 import { updateAt, moveBefore } from '../lib/arr'
 import { BUILTIN_LABELS } from '../lib/builtins'
 import { actionTokens, MORE } from '../lib/actions'
-import type { Settings, SearchEngine, CustomAction } from '../lib/types'
+import type { Settings, SearchEngine, CustomAction, AiAction, AiWindow, AiMode } from '../lib/types'
+import { OPEN_MODE_LABELS, type OpenMode } from '../lib/open-mode'
 import { LANGS, CURRENCIES } from '../lib/langs'
 import {
   PRESETS,
@@ -17,6 +18,7 @@ import {
 import type { SelectionHandles } from '../lib/handles'
 import { Handle } from '../content/Handle'
 import { Section } from '../components/Section'
+import { SvgIcon } from '../components/SvgIcon'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Textarea } from '../components/ui/Textarea'
@@ -25,15 +27,71 @@ import { Switch } from '../components/ui/Switch'
 import { Row } from '../components/ui/Row'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { Toc } from './Toc'
-import { IconSearch, IconCopy, IconTranslate, IconBook } from '../content/icons'
+import {
+  IconSearch,
+  IconCopy,
+  IconTranslate,
+  IconBook,
+  IconBolt,
+  IconGear,
+  IconSun,
+  IconMoon,
+} from '../content/icons'
+import { resolveIcon } from '../lib/svg-icon'
+import {
+  CHROME_STORE_URL,
+  GITHUB_ISSUES_URL,
+  randomFeedbackMessage,
+} from '../lib/feedback'
 
 const swatch =
   'h-7 w-10 shrink-0 cursor-pointer rounded-md border border-line bg-transparent disabled:opacity-40'
 const slider = 'w-full accent-accent'
 
+// Module-level so its identity is stable across Options re-renders (slider drags,
+// keystrokes). An inline component would remount the button and drop keyboard focus.
+function PreviewBgToggle({ light, onToggle }: { light: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={light ? 'Preview on dark background' : 'Preview on light background'}
+      class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md border border-white/20 bg-black/40 text-white/90 backdrop-blur hover:bg-black/60"
+    >
+      {light ? <IconMoon width={15} height={15} /> : <IconSun width={15} height={15} />}
+    </button>
+  )
+}
+
 export function Options() {
   const [s, setS] = useSettings()
   const [saved, setSaved] = useState(false)
+  const [saveErr, setSaveErr] = useState<string | null>(null)
+  // Preview backdrop defaults to the settings-page theme; null = follow theme,
+  // set = explicit user override (view-only, not persisted). Track the .dark class
+  // on <html> directly so it reacts to the ThemeToggle in this same tab (the
+  // toggle's storage event never fires in the tab that made the change).
+  const [pageDark, setPageDark] = useState(() => document.documentElement.classList.contains('dark'))
+  const [previewOverride, setPreviewOverride] = useState<boolean | null>(null)
+  // Random feedback nudge, fixed per page open (picked once on mount).
+  const [feedbackMsg] = useState(randomFeedbackMessage)
+  // Scroll to the hash target (e.g. #feedback from the popup) once content renders.
+  const scrolledToHash = useRef(false)
+  useEffect(() => {
+    if (!s || scrolledToHash.current) return
+    scrolledToHash.current = true
+    const id = location.hash.slice(1)
+    if (id) document.getElementById(id)?.scrollIntoView()
+  }, [s])
+  useEffect(() => {
+    const el = document.documentElement
+    const obs = new MutationObserver(() => {
+      setPageDark(el.classList.contains('dark'))
+      setPreviewOverride(null) // theme switch wins; drop any preview override
+    })
+    obs.observe(el, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
+  }, [])
   // in-flight drag source + current drop-target index within the action list
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [overIdx, setOverIdx] = useState<number | null>(null)
@@ -62,11 +120,19 @@ export function Options() {
         ;(patch as Record<string, unknown>)[k] = s[k]
       }
     }
-    const next = await setSettings(patch)
-    baseline.current = next
-    setS(next)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 1500)
+    try {
+      const next = await setSettings(patch)
+      baseline.current = next
+      setS(next)
+      setSaveErr(null)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 1500)
+    } catch (e) {
+      // storage.sync can reject (e.g. QUOTA_BYTES_PER_ITEM: large SVG icons in
+      // the single ~8KB settings item). Surface it instead of dropping the edits
+      // silently and leaving the button on plain "Save".
+      setSaveErr(e instanceof Error ? e.message : 'Save failed')
+    }
   }
   const reset = () => {
     setS(structuredClone(DEFAULT_SETTINGS))
@@ -89,7 +155,24 @@ export function Options() {
   // --- custom actions ---
   // Reconcile the unified order on every change so new ids appear and stale ones drop.
   const setActions = (customActions: CustomAction[]) =>
-    update({ customActions, actionOrder: actionTokens(s.actionOrder, customActions) })
+    update({ customActions, actionOrder: actionTokens(s.actionOrder, customActions, s.aiActions) })
+  // Per-action icon source draft + inline error, keyed by action id.
+  const [iconInput, setIconInput] = useState<Record<string, string>>({})
+  const [iconErr, setIconErr] = useState<Record<string, string>>({})
+  const applyIcon = async (ci: number, id: string) => {
+    try {
+      const icon = await resolveIcon(iconInput[id] ?? '')
+      setActions(updateAt(s.customActions, ci, { icon }))
+      setIconErr((e) => ({ ...e, [id]: '' }))
+      setIconInput((v) => ({ ...v, [id]: '' }))
+    } catch (err) {
+      setIconErr((e) => ({ ...e, [id]: err instanceof Error ? err.message : String(err) }))
+    }
+  }
+  const clearIcon = (ci: number, id: string) => {
+    setActions(updateAt(s.customActions, ci, { icon: undefined }))
+    setIconErr((e) => ({ ...e, [id]: '' }))
+  }
   const addAction = (type: CustomAction['type']) =>
     setActions([
       ...s.customActions,
@@ -99,8 +182,16 @@ export function Options() {
         type,
         template: type === 'url' ? 'https://example.com/?q=%s' : 'return input.text.toUpperCase()',
         enabled: true,
+        open: 'tab',
       },
     ])
+
+  // --- AI assistants (rendered inline in the unified action list) ---
+  const [aiOpen, setAiOpen] = useState<Record<string, boolean>>({})
+  const setAi = (i: number, patch: Partial<AiAction>) =>
+    update({ aiActions: updateAt(s.aiActions, i, patch) })
+  const setAiWin = (i: number, patch: Partial<AiWindow>) =>
+    setAi(i, { window: { ...s.aiActions[i].window, ...patch } })
 
   // --- appearance ---
   const a = s.appearance
@@ -122,7 +213,7 @@ export function Options() {
     update({ selectionHandles: { ...hh, ...patch } })
 
   // --- unified action list (built-ins + custom + the ⋯ divider) ---
-  const tokens = actionTokens(s.actionOrder, s.customActions)
+  const tokens = actionTokens(s.actionOrder, s.customActions, s.aiActions)
   const moreIdx = tokens.indexOf(MORE)
   const reorder = (to: number) => {
     // Drop indicator is a top border on the hovered row, so the item lands
@@ -130,6 +221,25 @@ export function Options() {
     if (dragIdx !== null) update({ actionOrder: moveBefore(tokens, dragIdx, to) })
     setDragIdx(null)
   }
+
+  // shared backdrop + top-right light/dark switch for both preview panes
+  const previewLight = previewOverride ?? !pageDark
+  const previewBg = previewLight
+    ? {
+        backgroundColor: '#f1f5f9',
+        backgroundImage:
+          'linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%)',
+        backgroundSize: '20px 20px',
+        backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
+      }
+    : {
+        backgroundColor: '#0b1220',
+        backgroundImage:
+          'linear-gradient(45deg, #131c2e 25%, transparent 25%), linear-gradient(-45deg, #131c2e 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #131c2e 75%), linear-gradient(-45deg, transparent 75%, #131c2e 75%)',
+        backgroundSize: '20px 20px',
+        backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
+      }
+  const togglePreview = () => setPreviewOverride(!previewLight)
 
   return (
     <div class="mx-auto max-w-2xl p-6 lg:max-w-5xl">
@@ -139,6 +249,7 @@ export function Options() {
           <p class="text-xs text-muted">Settings</p>
         </div>
         <div class="flex items-center gap-2">
+          {saveErr && <span class="text-xs text-red-500">{saveErr}</span>}
           <ThemeToggle />
           <Button onClick={reset}>Reset</Button>
           <Button variant="primary" onClick={save} disabled={!dirty}>
@@ -149,7 +260,7 @@ export function Options() {
 
       <div class="mt-6 lg:flex lg:gap-8">
         <Toc />
-        <div class="space-y-6 lg:flex-1">
+        <div class="space-y-6 lg:flex-1 pb-[70vh]">
           <Section
             title="Trigger"
             divided
@@ -222,6 +333,156 @@ export function Options() {
                   )
                 }
 
+                if (t.startsWith('ai:')) {
+                  const ai = s.aiActions.findIndex((a) => `ai:${a.target}` === t)
+                  const action = s.aiActions[ai]
+                  if (!action) return null
+                  const open = !!aiOpen[action.target]
+                  const w = action.window
+                  const framed = action.mode === 'iframe'
+                  const sized = action.mode === 'iframe' || action.mode === 'window'
+                  return (
+                    <div
+                      key={action.target}
+                      {...dropProps}
+                      class={`rounded-lg border border-line bg-surface-hover/50 p-2.5 ${indent} ${dnd}`}
+                    >
+                      <div class="flex items-center gap-2">
+                        {dragHandle}
+                        <span class="text-sm font-medium text-ink">{action.label}</span>
+                        <span class="rounded-md bg-surface-hover px-2 py-0.5 text-xs font-medium uppercase text-muted">
+                          AI
+                        </span>
+                        <Select
+                          value={action.mode}
+                          onChange={(e) => setAi(ai, { mode: e.currentTarget.value as AiMode })}
+                        >
+                          <option value="tab">New tab</option>
+                          <option value="window">Popup window</option>
+                          <option value="sidebar">Sidebar</option>
+                          <option value="iframe">In-page window</option>
+                        </Select>
+                        <div class="ml-auto flex items-center gap-2">
+                          <button
+                            type="button"
+                            title="Edit prompt & window"
+                            aria-expanded={open}
+                            onClick={() =>
+                              setAiOpen((o) => ({ ...o, [action.target]: !o[action.target] }))
+                            }
+                            class={`flex h-7 w-7 items-center justify-center rounded-md border border-line hover:text-ink ${open ? 'text-ink' : 'text-muted'}`}
+                          >
+                            <IconGear width={15} height={15} />
+                          </button>
+                          <Switch
+                            title="Enabled"
+                            checked={action.enabled}
+                            onChange={(v) => setAi(ai, { enabled: v })}
+                          />
+                        </div>
+                      </div>
+
+                      {open && (
+                        <div class="mt-2 space-y-2 border-t border-line pt-2">
+                          <Textarea
+                            class="h-14 w-full font-mono text-xs"
+                            placeholder="Prompt, e.g. Explain simply: {selection}"
+                            value={action.template}
+                            onInput={(e) => setAi(ai, { template: e.currentTarget.value })}
+                          />
+                          <p class="text-xs text-muted">
+                            Use <code>{'{selection}'}</code> for the selected text. Tab/Window stay
+                            logged in; Sidebar/In-page window are framed (logged-out, some sites
+                            refuse to load).
+                          </p>
+                          {sized && (
+                            <div class="grid grid-cols-2 gap-2">
+                              <Row label="Width">
+                                <Input
+                                  type="number"
+                                  value={w.w}
+                                  onInput={(e) => setAiWin(ai, { w: +e.currentTarget.value || 0 })}
+                                  class="w-24"
+                                />
+                              </Row>
+                              <Row label="Height">
+                                <Input
+                                  type="number"
+                                  value={w.h}
+                                  onInput={(e) => setAiWin(ai, { h: +e.currentTarget.value || 0 })}
+                                  class="w-24"
+                                />
+                              </Row>
+                            </div>
+                          )}
+                          {framed && (
+                            <div class="grid grid-cols-2 gap-3 border-t border-line pt-2">
+                              <Row label="Background">
+                                <input
+                                  type="color"
+                                  value={w.bg}
+                                  onInput={(e) => setAiWin(ai, { bg: e.currentTarget.value })}
+                                  class={swatch}
+                                />
+                              </Row>
+                              <Row label="Border color">
+                                <input
+                                  type="color"
+                                  value={w.borderColor}
+                                  disabled={!w.border}
+                                  onInput={(e) =>
+                                    setAiWin(ai, { borderColor: e.currentTarget.value })
+                                  }
+                                  class={swatch}
+                                />
+                              </Row>
+                              <label class="block text-sm text-ink">
+                                Opacity{' '}
+                                <span class="text-muted">{Math.round(w.bgOpacity * 100)}%</span>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="1"
+                                  step="0.01"
+                                  value={w.bgOpacity}
+                                  onInput={(e) =>
+                                    setAiWin(ai, { bgOpacity: +e.currentTarget.value })
+                                  }
+                                  class={slider}
+                                />
+                              </label>
+                              <label class="block text-sm text-ink">
+                                Roundness <span class="text-muted">{w.radius}px</span>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  step="1"
+                                  value={w.radius}
+                                  onInput={(e) => setAiWin(ai, { radius: +e.currentTarget.value })}
+                                  class={slider}
+                                />
+                              </label>
+                              <div class="flex gap-6">
+                                <Switch
+                                  label="Border"
+                                  checked={w.border}
+                                  onChange={(v) => setAiWin(ai, { border: v })}
+                                />
+                                <Switch
+                                  label="Shadow"
+                                  checked={w.shadow}
+                                  onChange={(v) => setAiWin(ai, { shadow: v })}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
+
                 if (t.startsWith('custom:')) {
                   const ci = s.customActions.findIndex((a) => `custom:${a.id}` === t)
                   const action = s.customActions[ci]
@@ -246,6 +507,23 @@ export function Options() {
                         <span class="rounded-md bg-surface-hover px-2 py-0.5 text-xs font-medium uppercase text-muted">
                           {action.type}
                         </span>
+                        <Select
+                          title="Opens in"
+                          value={action.open ?? 'tab'}
+                          onChange={(e) =>
+                            setActions(
+                              updateAt(s.customActions, ci, {
+                                open: e.currentTarget.value as OpenMode,
+                              }),
+                            )
+                          }
+                        >
+                          {(Object.keys(OPEN_MODE_LABELS) as OpenMode[]).map((m) => (
+                            <option key={m} value={m}>
+                              {OPEN_MODE_LABELS[m]}
+                            </option>
+                          ))}
+                        </Select>
                         <div class="ml-auto flex items-center gap-2">
                           <Switch
                             title="Enabled"
@@ -273,6 +551,43 @@ export function Options() {
                           )
                         }
                       />
+                      <div class="mt-2 flex items-center gap-2">
+                        {action.icon ? (
+                          <SvgIcon markup={action.icon} class="h-5 w-5 shrink-0 text-ink" />
+                        ) : (
+                          <span class="flex h-5 w-5 shrink-0 items-center justify-center text-ink">
+                            <IconBolt />
+                          </span>
+                        )}
+                        <Input
+                          class="flex-1"
+                          placeholder="Icon: SVG URL or <svg> markup"
+                          value={iconInput[action.id] ?? ''}
+                          onInput={(e) =>
+                            setIconInput((v) => ({ ...v, [action.id]: e.currentTarget.value }))
+                          }
+                        />
+                        <Button
+                          variant="primary"
+                          class="px-2"
+                          onClick={() => applyIcon(ci, action.id)}
+                        >
+                          Set icon
+                        </Button>
+                        {action.icon && (
+                          <Button
+                            variant="danger"
+                            class="px-2"
+                            title="Clear icon"
+                            onClick={() => clearIcon(ci, action.id)}
+                          >
+                            ✕
+                          </Button>
+                        )}
+                      </div>
+                      {iconErr[action.id] && (
+                        <p class="mt-1 text-xs text-red-500">{iconErr[action.id]}</p>
+                      )}
                     </div>
                   )
                 }
@@ -389,13 +704,24 @@ export function Options() {
                   <input
                     type="range"
                     min="0"
-                    max="24"
+                    max="100"
                     step="1"
                     value={a.radius}
                     onInput={(e) => setAppr({ radius: +e.currentTarget.value })}
                     class={slider}
                   />
                 </label>
+                <Row label="Corner shape">
+                  <Select
+                    value={a.cornerShape}
+                    onChange={(e) =>
+                      setAppr({ cornerShape: e.currentTarget.value as Appearance['cornerShape'] })
+                    }
+                  >
+                    <option value="round">Round</option>
+                    <option value="squircle">Squircle</option>
+                  </Select>
+                </Row>
                 <label class="block text-sm text-ink">
                   Size <span class="text-muted">{Math.round(a.scale * 100)}%</span>
                   <input
@@ -405,6 +731,18 @@ export function Options() {
                     step="0.05"
                     value={a.scale}
                     onInput={(e) => setAppr({ scale: +e.currentTarget.value })}
+                    class={slider}
+                  />
+                </label>
+                <label class="block text-sm text-ink">
+                  Max width <span class="text-muted">{a.maxWidth}px</span>
+                  <input
+                    type="range"
+                    min="240"
+                    max="640"
+                    step="8"
+                    value={a.maxWidth}
+                    onInput={(e) => setAppr({ maxWidth: +e.currentTarget.value })}
                     class={slider}
                   />
                 </label>
@@ -460,17 +798,12 @@ export function Options() {
               </div>
 
               <div
-                class="flex items-start justify-center rounded-lg p-6"
-                style={{
-                  backgroundColor: '#0b1220',
-                  backgroundImage:
-                    'linear-gradient(45deg, #131c2e 25%, transparent 25%), linear-gradient(-45deg, #131c2e 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #131c2e 75%), linear-gradient(-45deg, transparent 75%, #131c2e 75%)',
-                  backgroundSize: '20px 20px',
-                  backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
-                }}
+                class="relative flex items-start justify-center rounded-lg p-6"
+                style={previewBg}
               >
+                <PreviewBgToggle light={previewLight} onToggle={togglePreview} />
                 <div class="stp-panel w-max font-sans" style={appearanceStyle(a)}>
-                  <div class="flex items-center gap-0.5 p-1">
+                  <div class="flex flex-wrap items-center gap-0.5 p-1">
                     <span class="stp-btn flex h-8 w-8 items-center justify-center">
                       <IconSearch />
                     </span>
@@ -558,16 +891,13 @@ export function Options() {
               </div>
 
               <div
-                class="flex items-center justify-center rounded-lg p-6"
-                style={{
-                  backgroundColor: '#0b1220',
-                  backgroundImage:
-                    'linear-gradient(45deg, #131c2e 25%, transparent 25%), linear-gradient(-45deg, #131c2e 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #131c2e 75%), linear-gradient(-45deg, transparent 75%, #131c2e 75%)',
-                  backgroundSize: '20px 20px',
-                  backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
-                }}
+                class="relative flex items-center justify-center rounded-lg p-6"
+                style={previewBg}
               >
-                <div class="select-none font-sans text-base leading-[24px] text-white">
+                <PreviewBgToggle light={previewLight} onToggle={togglePreview} />
+                <div
+                  class={`select-none font-sans text-base leading-[24px] ${previewLight ? 'text-slate-800' : 'text-white'}`}
+                >
                   Drag the{' '}
                   <span
                     class="relative"
@@ -715,6 +1045,21 @@ export function Options() {
                 ))}
               </Select>
             </Row>
+          </Section>
+
+          <Section
+            title="Feedback"
+            desc="Request a feature, report a bug, or send a recommendation. We currently have 0 known issues."
+          >
+            <p class="text-sm text-ink">{feedbackMsg}</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <Button variant="primary" onClick={() => window.open(CHROME_STORE_URL, '_blank')}>
+                ★ Rate on Chrome Web Store
+              </Button>
+              <Button onClick={() => window.open(GITHUB_ISSUES_URL, '_blank')}>
+                Report an issue on GitHub
+              </Button>
+            </div>
           </Section>
         </div>
       </div>

@@ -4,9 +4,12 @@ import type { ComponentType, JSX } from 'preact'
 import { store } from './store'
 import { Result } from './Result'
 import { Btn } from '../components/Btn'
+import { SvgIcon } from '../components/SvgIcon'
 import { BUILTIN_LABELS, type BuiltinKey } from '../lib/builtins'
 import { actionTokens, MORE } from '../lib/actions'
 import { appearanceStyle } from '../lib/appearance'
+import type { AiTarget } from '../lib/ai-targets'
+import { LuChevronLeft, LuChevronRight } from 'react-icons/lu'
 import {
   IconSearch,
   IconCopy,
@@ -17,13 +20,25 @@ import {
   IconBolt,
   IconClose,
   IconGrip,
-  IconMore,
+  IconChatGPT,
+  IconClaude,
+  IconGemini,
+  IconGrok,
 } from './icons'
+
+const AI_ICONS: Record<AiTarget, ComponentType<Record<string, unknown>>> = {
+  chatgpt: IconChatGPT,
+  claude: IconClaude,
+  gemini: IconGemini,
+  grok: IconGrok,
+}
 
 interface Item {
   id: string
   label: string
   Icon: ComponentType<Record<string, unknown>>
+  /** sanitized inline SVG markup for custom-action icons; overrides Icon when set */
+  iconMarkup?: string
   run: () => void
   isCopy?: boolean
 }
@@ -58,11 +73,11 @@ const BUILTIN_ICONS: Record<BuiltinKey, ComponentType<Record<string, unknown>>> 
 
 export function Tooltip() {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot)
-  const [menuOpen, setMenuOpen] = useState(false)
-  // Tooltip stays mounted (returns null when closed), so reset the overflow menu
+  const [expanded, setExpanded] = useState(false)
+  // Tooltip stays mounted (returns null when closed), so reset the overflow state
   // on close or it reopens already-expanded on the next selection.
   useEffect(() => {
-    if (!state.open) setMenuOpen(false)
+    if (!state.open) setExpanded(false)
   }, [state.open])
   if (!state.open || !state.settings) return null
 
@@ -70,20 +85,42 @@ export function Tooltip() {
   const showPanel = state.view.kind !== 'buttons'
   const menuOn = s.moreMenu
 
-  // Walk the unified token list; the MORE divider flips items into the ⋯ menu.
+  // Walk the unified token list; when the overflow toggle is on, the MORE divider
+  // splits primary (always shown) from overflow actions (revealed on ⋯ expand).
   const barItems: Item[] = []
-  const menuItems: Item[] = []
+  const overflowItems: Item[] = []
   let past = false
-  for (const t of actionTokens(s.actionOrder, s.customActions)) {
+  for (const t of actionTokens(s.actionOrder, s.customActions, s.aiActions)) {
     if (t === MORE) {
       past = true
       continue
     }
     let item: Item | null = null
-    if (t.startsWith('custom:')) {
+    if (t.startsWith('ai:')) {
+      const ai = s.aiActions.find((x) => `ai:${x.target}` === t)
+      if (ai?.enabled)
+        item = {
+          id: t,
+          label: ai.label,
+          Icon: AI_ICONS[ai.target],
+          run: () => store.performAi(ai.target),
+        }
+    } else if (t.startsWith('custom:')) {
       const a = s.customActions.find((x) => `custom:${x.id}` === t)
-      if (a?.enabled)
-        item = { id: t, label: a.name, Icon: IconBolt, run: () => store.perform(t) }
+      if (a?.enabled) {
+        // Custom SVG markup was sanitized on save (options); the content script trusts
+        // the stored value and renders it inline (via SvgIcon) so it inherits
+        // currentColor/--stp-fg.
+        // ponytail: if a settings-import feature is ever added, re-sanitize here (pulls
+        // DOMPurify into the content bundle).
+        item = {
+          id: t,
+          label: a.name,
+          Icon: IconBolt,
+          iconMarkup: a.icon,
+          run: () => store.perform(t),
+        }
+      }
     } else {
       const k = t as BuiltinKey
       if (s.builtins[k])
@@ -95,8 +132,28 @@ export function Tooltip() {
           isCopy: k === 'copy',
         }
     }
-    if (item) (menuOn && past ? menuItems : barItems).push(item)
+    if (item) (menuOn && past ? overflowItems : barItems).push(item)
   }
+
+  const showToggle = menuOn && overflowItems.length > 0
+
+  // Icon-only action button; copy shows a green check while the copied flag is set.
+  const renderItem = (it: Item) =>
+    it.isCopy && state.copied ? (
+      <button
+        key={it.id}
+        type="button"
+        title="Copied!"
+        onMouseDown={(e) => e.preventDefault()}
+        class="stp-btn stp-btn-ok flex h-8 w-8 cursor-pointer items-center justify-center"
+      >
+        <IconCheck />
+      </button>
+    ) : (
+      <Btn key={it.id} title={it.label} onClick={it.run}>
+        {it.iconMarkup ? <SvgIcon markup={it.iconMarkup} /> : <it.Icon />}
+      </Btn>
+    )
 
   return (
     <div
@@ -124,54 +181,27 @@ export function Tooltip() {
       >
         <IconClose width={12} height={12} />
       </button>
-      <div class="stp-panel w-max max-w-sm" style={appearanceStyle(s.appearance)}>
-        <div class="flex items-center gap-0.5 p-1">
-          {barItems.map((it) =>
-            it.isCopy && state.copied ? (
-              <button
+      <div class="stp-panel w-max" style={appearanceStyle(s.appearance)}>
+        <div class="flex flex-wrap items-center gap-0.5 p-1">
+          {barItems.map(renderItem)}
+          {/* Overflow buttons stay mounted and collapse to zero-width so both expand
+              and collapse animate (a mount/unmount can only transition one way). */}
+          {showToggle &&
+            overflowItems.map((it) => (
+              <span
                 key={it.id}
-                type="button"
-                title="Copied!"
-                onMouseDown={(e) => e.preventDefault()}
-                class="stp-btn stp-btn-ok flex h-8 w-8 cursor-pointer items-center justify-center"
+                class={`stp-collapse flex ${expanded ? '' : 'stp-collapse-closed'}`}
               >
-                <IconCheck />
-              </button>
-            ) : (
-              <Btn key={it.id} title={it.label} onClick={it.run}>
-                <it.Icon />
-              </Btn>
-            ),
-          )}
-          {menuOn && menuItems.length > 0 && (
-            <div class="relative">
-              <Btn title="More actions" onClick={() => setMenuOpen((o) => !o)}>
-                <IconMore />
-              </Btn>
-              {menuOpen && (
-                <div
-                  class="stp-panel absolute right-0 top-full z-20 mt-1 min-w-40 overflow-hidden p-1"
-                  style={appearanceStyle(s.appearance)}
-                >
-                  {menuItems.map((it) => (
-                    <button
-                      key={it.id}
-                      type="button"
-                      title={it.label}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        it.run()
-                        setMenuOpen(false)
-                      }}
-                      class="stp-btn flex w-full cursor-pointer items-center gap-2 px-2 py-1.5 text-left text-sm"
-                    >
-                      {it.isCopy && state.copied ? <IconCheck /> : <it.Icon />}
-                      <span class="truncate">{it.label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                {renderItem(it)}
+              </span>
+            ))}
+          {showToggle && (
+            <Btn
+              title={expanded ? 'Fewer actions' : 'More actions'}
+              onClick={() => setExpanded((o) => !o)}
+            >
+              {expanded ? <LuChevronLeft size={16} /> : <LuChevronRight size={16} />}
+            </Btn>
           )}
         </div>
 

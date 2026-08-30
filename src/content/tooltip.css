@@ -3,3 +3,28 @@
 
 /* Scan the Preact sources for classes even though this CSS is injected into a shadow root. */
 @source '../**/*.{ts,tsx}';
+
+/* Tailwind sizes everything in `rem`, and `rem` resolves against the host
+   page's <html> font-size even inside a shadow root — so pages that set e.g.
+   `html { font-size: 62.5% }` rescale the whole popup. Pin every rem-derived
+   design token to px so the popup renders identically on every site. */
+@theme {
+  --spacing: 4px;
+
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-base: 16px;
+  --text-base--line-height: 24px;
+  --text-lg: 18px;
+  --text-lg--line-height: 28px;
+  --text-xl: 20px;
+  --text-xl--line-height: 28px;
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+}

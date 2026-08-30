@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { actionTokens, MORE } from '../src/lib/actions'
 import { move } from '../src/lib/arr'
-import type { CustomAction } from '../src/lib/types'
+import type { CustomAction, AiAction } from '../src/lib/types'
+import type { AiTarget } from '../src/lib/ai-targets'
 
 const custom = (id: string): CustomAction => ({
   id,
@@ -9,6 +10,26 @@ const custom = (id: string): CustomAction => ({
   type: 'url',
   template: 'https://x/?q=%s',
   enabled: true,
+})
+
+const ai = (target: AiTarget): AiAction => ({
+  target,
+  label: target,
+  enabled: true,
+  template: '{selection}',
+  mode: 'tab',
+  window: {
+    w: 460,
+    h: 640,
+    x: null,
+    y: null,
+    bg: '#000',
+    bgOpacity: 1,
+    radius: 12,
+    border: true,
+    borderColor: '#333',
+    shadow: true,
+  },
 })
 
 describe('actionTokens', () => {
@@ -37,6 +58,16 @@ describe('actionTokens', () => {
     const out = actionTokens(undefined, [])
     expect(out.filter((t) => t === MORE)).toHaveLength(1)
     expect(out.indexOf(MORE)).toBe(out.length - 1) // built-ins all precede it
+  })
+
+  it('appends AI tokens before the divider and keeps their stored position', () => {
+    // new AI action lands before MORE
+    const fresh = actionTokens(['search', MORE], [], [ai('chatgpt')])
+    expect(fresh.indexOf('ai:chatgpt')).toBeLessThan(fresh.indexOf(MORE))
+    // an AI token stored after MORE (overflow) stays there; stale AI tokens drop
+    const kept = actionTokens(['search', MORE, 'ai:claude', 'ai:gone'], [], [ai('claude')])
+    expect(kept.indexOf('ai:claude')).toBeGreaterThan(kept.indexOf(MORE))
+    expect(kept).not.toContain('ai:gone')
   })
 })
 

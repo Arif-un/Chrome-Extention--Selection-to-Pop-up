@@ -63,10 +63,28 @@ function caretPoint(x: number, y: number): PagePoint | null {
 // inside form controls.
 
 const MIRROR_PROPS = [
-  'boxSizing', 'width', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth',
-  'borderLeftWidth', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
-  'fontStyle', 'fontVariant', 'fontWeight', 'fontStretch', 'fontSize', 'fontFamily',
-  'lineHeight', 'letterSpacing', 'wordSpacing', 'textAlign', 'textTransform', 'textIndent',
+  'boxSizing',
+  'width',
+  'borderTopWidth',
+  'borderRightWidth',
+  'borderBottomWidth',
+  'borderLeftWidth',
+  'paddingTop',
+  'paddingRight',
+  'paddingBottom',
+  'paddingLeft',
+  'fontStyle',
+  'fontVariant',
+  'fontWeight',
+  'fontStretch',
+  'fontSize',
+  'fontFamily',
+  'lineHeight',
+  'letterSpacing',
+  'wordSpacing',
+  'textAlign',
+  'textTransform',
+  'textIndent',
 ] as const
 
 function buildMirror(el: HTMLInputElement | HTMLTextAreaElement): HTMLDivElement {
@@ -131,8 +149,7 @@ function fieldIndexFromPoint(
     while (lo < hi) {
       const mid = (lo + hi) >> 1
       const c = coordIn(div, el, mid)
-      const before =
-        c.top + c.height <= clientY ? true : c.top > clientY ? false : c.x < clientX
+      const before = c.top + c.height <= clientY ? true : c.top > clientY ? false : c.x < clientX
       if (before) lo = mid + 1
       else hi = mid
     }

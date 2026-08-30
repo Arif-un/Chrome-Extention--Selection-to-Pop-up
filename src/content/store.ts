@@ -1,5 +1,8 @@
-import { getSettings, onSettingsChange } from '../lib/settings'
-import type { Settings } from '../lib/types'
+import { getSettings, onSettingsChange, setSettings } from '../lib/settings'
+import type { Settings, AiWindow } from '../lib/types'
+import { aiTarget, renderPrompt, surfaceUrl, type AiTarget } from '../lib/ai-targets'
+import { popupSize, popupFeatures, type OpenMode } from '../lib/open-mode'
+import { updateAt } from '../lib/arr'
 import type {
   Request,
   Response,
@@ -64,6 +67,8 @@ export interface State {
   sel: SelGeom | null
   /** a handle is currently being dragged (overlay goes pointer-events:none) */
   dragging: boolean
+  /** open in-page AI iframe window (iframe mode), or null */
+  preview: { target: AiTarget; url: string; win: AiWindow } | null
 }
 
 type Listener = () => void
@@ -80,6 +85,7 @@ class Store {
     overrides: {},
     sel: null,
     dragging: false,
+    preview: null,
   }
   private listeners = new Set<Listener>()
   private copyTimer?: ReturnType<typeof setTimeout>
@@ -149,8 +155,14 @@ class Store {
   syncHandles(): SelGeom | null {
     const on = this.state.settings?.selectionHandles.enabled
     const next = on ? getEndpointRects() : null
-    if (!sameGeom(this.state.sel, next)) this.set({ sel: next })
-    return next
+    // While dragging, never drop to null: when the two handles meet/cross the
+    // selection collapses for a frame, and unmounting the grips would release the
+    // dragged grip's pointer capture — its pointerup then never fires and
+    // `dragging` sticks true, disabling every handle (including the next
+    // selection's). Keep the last geometry so the grips stay mounted.
+    const keep = next ?? (this.state.dragging ? this.state.sel : null)
+    if (!sameGeom(this.state.sel, keep)) this.set({ sel: keep })
+    return keep
   }
 
   /** While a handle is dragged: keep an open popup on the (new) selection. */
@@ -165,7 +177,8 @@ class Store {
     if (v.kind !== 'result') return
     const kind = v.result.kind
     // 'text' results come from custom actions (possible side effects) — don't auto-rerun.
-    if (kind === 'translate' || kind === 'dictionary' || kind === 'currency') void this.perform(kind)
+    if (kind === 'translate' || kind === 'dictionary' || kind === 'currency')
+      void this.perform(kind)
   }
 
   /** Inline one-off language override for translate; re-runs the lookup. */
@@ -266,11 +279,75 @@ class Store {
     }
   }
 
+  /** Run an AI action: render the prompt, then open it in the configured surface. */
+  async performAi(target: AiTarget) {
+    const s = this.state.settings
+    const text = this.state.text.trim()
+    if (!s || !text) return
+    const action = s.aiActions.find((a) => a.target === target)
+    if (!action) return
+    const def = aiTarget(action.target)
+    if (!def) return
+    const url = surfaceUrl(def, renderPrompt(action.template, text))
+
+    if (action.mode === 'iframe') {
+      this.set({ preview: { target: action.target, url, win: action.window } })
+      return
+    }
+    // tab / window / sidebar require chrome.tabs/windows/sidePanel — go via background.
+    try {
+      await chrome.runtime.sendMessage({
+        type: 'OPEN_AI',
+        url,
+        mode: action.mode,
+        win: { w: action.window.w, h: action.window.h },
+      })
+    } catch {
+      // background asleep / navigated away — open a plain tab as a last resort
+      window.open(url, '_blank')
+    }
+    this.hide()
+  }
+
+  closePreview() {
+    if (this.state.preview) this.set({ preview: null })
+  }
+
+  /** Persist the iframe window's size/position back to its AI action. */
+  async saveAiWindow(target: AiTarget, patch: Partial<AiWindow>) {
+    const s = this.state.settings
+    if (!s) return
+    const i = s.aiActions.findIndex((a) => a.target === target)
+    if (i < 0) return
+    const aiActions = updateAt(s.aiActions, i, {
+      window: { ...s.aiActions[i].window, ...patch },
+    })
+    await setSettings({ aiActions })
+  }
+
+  /** Open a URL in the action's chosen surface (tab / popup window / sidebar). */
+  private openUrl(url: string, mode: OpenMode = 'tab') {
+    if (mode === 'sidebar') {
+      // Reuse the AI side-panel path. ponytail: header-stripping is scoped to AI
+      // domains, so arbitrary custom URLs that block framing show blank in the panel.
+      void chrome.runtime
+        .sendMessage({ type: 'OPEN_AI', url, mode: 'sidebar' })
+        .catch(() => window.open(url, '_blank'))
+      return
+    }
+    const size = popupSize(mode)
+    if (size) {
+      window.open(url, '_blank', popupFeatures(size.w, size.h, screen.width, screen.height))
+      return
+    }
+    window.open(url, '_blank')
+  }
+
   private async runCustom(id: string, text: string, s: Settings, seq: number) {
     const action = s.customActions.find((a) => a.id === id)
     if (!action) return
     if (action.type === 'url') {
-      window.open(action.template.replace('%s', encodeURIComponent(text)), '_blank')
+      this.openUrl(action.template.replace('%s', encodeURIComponent(text)), action.open)
       this.hide()
       return
     }
@@ -283,7 +360,7 @@ class Store {
     })
     if (seq !== this.reqSeq) return
     if (/^https?:\/\//i.test(out.trim())) {
-      window.open(out.trim(), '_blank')
+      this.openUrl(out.trim(), action.open)
       this.hide()
     } else {
       this.set({

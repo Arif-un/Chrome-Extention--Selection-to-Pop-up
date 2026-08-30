@@ -1,12 +1,18 @@
+import { useState } from 'preact/hooks'
 import { setSettings } from '../lib/settings'
 import { useSettings } from '../lib/useSettings'
 import { BUILTIN_KEYS, BUILTIN_LABELS } from '../lib/builtins'
 import { langName } from '../lib/langs'
+import { randomFeedbackMessage } from '../lib/feedback'
 import { Button } from '../components/ui/Button'
 import { Switch } from '../components/ui/Switch'
 
+const openFeedback = () =>
+  chrome.tabs.create({ url: chrome.runtime.getURL('src/options/index.html#feedback') })
+
 export function Popup() {
   const [settings, setLocal] = useSettings()
+  const [feedbackMsg] = useState(randomFeedbackMessage)
 
   if (!settings) return <div class="w-72 p-4 text-sm text-muted">Loading…</div>
 
@@ -42,13 +48,21 @@ export function Popup() {
           ))}
         </div>
         <div class="mt-2 text-xs text-muted">
-          Translate → {langName(settings.translate.targetLang)} · Currency → {settings.currency.target}
+          Translate → {langName(settings.translate.targetLang)} · Currency →{' '}
+          {settings.currency.target}
         </div>
       </div>
 
       <Button variant="primary" class="w-full" onClick={() => chrome.runtime.openOptionsPage()}>
         Open settings
       </Button>
+
+      <div class="rounded-lg border border-line bg-surface px-3 py-2">
+        <p class="text-xs text-muted">{feedbackMsg}</p>
+        <Button class="mt-2 w-full" onClick={openFeedback}>
+          Feedback
+        </Button>
+      </div>
     </div>
   )
 }
