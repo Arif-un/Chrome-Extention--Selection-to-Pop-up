@@ -7,6 +7,8 @@ import { BUILTIN_LABELS } from '../lib/builtins'
 import { actionTokens, MORE } from '../lib/actions'
 import type { Settings, SearchEngine, CustomAction, AiAction, AiWindow, AiMode } from '../lib/types'
 import { OPEN_MODE_LABELS, type OpenMode } from '../lib/open-mode'
+import { AI_PRESETS, presetIdFor } from '../lib/ai-presets'
+import { requestAiPermission } from '../lib/ai-permissions'
 import { LANGS, CURRENCIES } from '../lib/langs'
 import {
   PRESETS,
@@ -27,6 +29,8 @@ import { Switch } from '../components/ui/Switch'
 import { Row } from '../components/ui/Row'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { Toc } from './Toc'
+import { Tour } from './Tour'
+import { tourSeen, markTourSeen } from '../lib/tour'
 import {
   IconSearch,
   IconCopy,
@@ -41,6 +45,7 @@ import { resolveIcon } from '../lib/svg-icon'
 import {
   CHROME_STORE_URL,
   GITHUB_ISSUES_URL,
+  GITHUB_FEATURE_URL,
   randomFeedbackMessage,
 } from '../lib/feedback'
 
@@ -71,10 +76,27 @@ export function Options() {
   // set = explicit user override (view-only, not persisted). Track the .dark class
   // on <html> directly so it reacts to the ThemeToggle in this same tab (the
   // toggle's storage event never fires in the tab that made the change).
-  const [pageDark, setPageDark] = useState(() => document.documentElement.classList.contains('dark'))
+  const [pageDark, setPageDark] = useState(() =>
+    document.documentElement.classList.contains('dark'),
+  )
   const [previewOverride, setPreviewOverride] = useState<boolean | null>(null)
   // Random feedback nudge, fixed per page open (picked once on mount).
   const [feedbackMsg] = useState(randomFeedbackMessage)
+  // Guided tour: auto-runs the first time settings is ever opened (per device),
+  // and any time via the header button. Ref guards the once-only auto-start
+  // against re-renders (s changes on every edit).
+  const [tourOpen, setTourOpen] = useState(false)
+  const tourChecked = useRef(false)
+  useEffect(() => {
+    if (!s || tourChecked.current) return
+    tourChecked.current = true
+    void tourSeen().then((seen) => {
+      if (!seen) {
+        setTourOpen(true)
+        void markTourSeen()
+      }
+    })
+  }, [s])
   // Scroll to the hash target (e.g. #feedback from the popup) once content renders.
   const scrolledToHash = useRef(false)
   useEffect(() => {
@@ -159,10 +181,21 @@ export function Options() {
   // Per-action icon source draft + inline error, keyed by action id.
   const [iconInput, setIconInput] = useState<Record<string, string>>({})
   const [iconErr, setIconErr] = useState<Record<string, string>>({})
-  const applyIcon = async (ci: number, id: string) => {
+  const applyIcon = async (id: string) => {
     try {
       const icon = await resolveIcon(iconInput[id] ?? '')
-      setActions(updateAt(s.customActions, ci, { icon }))
+      // Merge into the latest state by id: resolveIcon may await a network fetch,
+      // during which another action could be edited/deleted; a captured-array
+      // write-back would clobber it. Icon-only edit needs no actionOrder reconcile.
+      setS((prev) =>
+        prev
+          ? {
+              ...prev,
+              customActions: prev.customActions.map((a) => (a.id === id ? { ...a, icon } : a)),
+            }
+          : prev,
+      )
+      setSaved(false)
       setIconErr((e) => ({ ...e, [id]: '' }))
       setIconInput((v) => ({ ...v, [id]: '' }))
     } catch (err) {
@@ -190,6 +223,16 @@ export function Options() {
   const [aiOpen, setAiOpen] = useState<Record<string, boolean>>({})
   const setAi = (i: number, patch: Partial<AiAction>) =>
     update({ aiActions: updateAt(s.aiActions, i, patch) })
+  // Framed modes (sidebar / in-page window) rely on the DNR header-strip, which
+  // needs the AI host permission (optional). Request it before switching; if the
+  // user denies, keep the current mode so we never leave a mode that can't work.
+  const setAiMode = async (i: number, mode: AiMode) => {
+    if (mode === 'sidebar' || mode === 'iframe') {
+      const ok = await requestAiPermission(s.aiActions[i].target)
+      if (!ok) return
+    }
+    setAi(i, { mode })
+  }
   const setAiWin = (i: number, patch: Partial<AiWindow>) =>
     setAi(i, { window: { ...s.aiActions[i].window, ...patch } })
 
@@ -244,19 +287,31 @@ export function Options() {
   return (
     <div class="mx-auto max-w-2xl p-6 lg:max-w-5xl">
       <header class="sticky top-0 z-10 -mx-6 flex items-center justify-between border-b border-line bg-canvas/80 px-6 py-3 backdrop-blur">
-        <div>
-          <h1 class="text-lg font-semibold text-ink">Select to Action</h1>
-          <p class="text-xs text-muted">Settings</p>
+        <div class="flex items-center gap-2.5">
+          <img
+            src={chrome.runtime.getURL('src/assets/icons/select-logo-48.png')}
+            alt=""
+            width={32}
+            height={32}
+            class="shrink-0 rounded-md"
+          />
+          <div>
+            <h1 class="text-lg font-semibold text-ink">Select to Action</h1>
+            <p class="text-xs text-muted">Settings</p>
+          </div>
         </div>
         <div class="flex items-center gap-2">
           {saveErr && <span class="text-xs text-red-500">{saveErr}</span>}
           <ThemeToggle />
+          <Button onClick={() => setTourOpen(true)}>Take a tour</Button>
           <Button onClick={reset}>Reset</Button>
-          <Button variant="primary" onClick={save} disabled={!dirty}>
+          <Button variant="primary" onClick={save} disabled={!dirty} data-tour="save">
             {saved ? 'Saved ✓' : 'Save'}
           </Button>
         </div>
       </header>
+
+      {tourOpen && <Tour onClose={() => setTourOpen(false)} />}
 
       <div class="mt-6 lg:flex lg:gap-8">
         <Toc />
@@ -353,16 +408,16 @@ export function Options() {
                         <span class="rounded-md bg-surface-hover px-2 py-0.5 text-xs font-medium uppercase text-muted">
                           AI
                         </span>
-                        <Select
-                          value={action.mode}
-                          onChange={(e) => setAi(ai, { mode: e.currentTarget.value as AiMode })}
-                        >
-                          <option value="tab">New tab</option>
-                          <option value="window">Popup window</option>
-                          <option value="sidebar">Sidebar</option>
-                          <option value="iframe">In-page window</option>
-                        </Select>
                         <div class="ml-auto flex items-center gap-2">
+                          <Select
+                            value={action.mode}
+                            onChange={(e) => void setAiMode(ai, e.currentTarget.value as AiMode)}
+                          >
+                            <option value="tab">New tab</option>
+                            <option value="window">Popup window</option>
+                            <option value="sidebar">Sidebar</option>
+                            <option value="iframe">In-page window</option>
+                          </Select>
                           <button
                             type="button"
                             title="Edit prompt & window"
@@ -384,6 +439,23 @@ export function Options() {
 
                       {open && (
                         <div class="mt-2 space-y-2 border-t border-line pt-2">
+                          <label class="flex items-center gap-3 text-sm">
+                            <span class="text-ink">Preset</span>
+                            <Select
+                              value={presetIdFor(action.template)}
+                              onChange={(e) => {
+                                const p = AI_PRESETS.find((x) => x.id === e.currentTarget.value)
+                                if (p) setAi(ai, { template: p.template })
+                              }}
+                            >
+                              {presetIdFor(action.template) === 'custom' && (
+                                <option value="custom">Custom</option>
+                              )}
+                              {AI_PRESETS.map((p) => (
+                                <option value={p.id}>{p.label}</option>
+                              ))}
+                            </Select>
+                          </label>
                           <Textarea
                             class="h-14 w-full font-mono text-xs"
                             placeholder="Prompt, e.g. Explain simply: {selection}"
@@ -391,9 +463,9 @@ export function Options() {
                             onInput={(e) => setAi(ai, { template: e.currentTarget.value })}
                           />
                           <p class="text-xs text-muted">
-                            Use <code>{'{selection}'}</code> for the selected text. Tab/Window stay
-                            logged in; Sidebar/In-page window are framed (logged-out, some sites
-                            refuse to load).
+                            Use <code>{'{selection}'}</code> for the selected text. Tab, Window and
+                            Sidebar keep you logged in; In-page window is embedded in the page
+                            (logged-out, and some sites refuse to load).
                           </p>
                           {sized && (
                             <div class="grid grid-cols-2 gap-2">
@@ -567,11 +639,7 @@ export function Options() {
                             setIconInput((v) => ({ ...v, [action.id]: e.currentTarget.value }))
                           }
                         />
-                        <Button
-                          variant="primary"
-                          class="px-2"
-                          onClick={() => applyIcon(ci, action.id)}
-                        >
+                        <Button variant="primary" class="px-2" onClick={() => applyIcon(action.id)}>
                           Set icon
                         </Button>
                         {action.icon && (
@@ -1058,6 +1126,25 @@ export function Options() {
               </Button>
               <Button onClick={() => window.open(GITHUB_ISSUES_URL, '_blank')}>
                 Report an issue on GitHub
+              </Button>
+            </div>
+          </Section>
+
+          <Section
+            title="Feature Request"
+            desc="Missing an action or want the popup to do something new? Tell us exactly what you need and why — the clearer the request, the sooner it can ship."
+            footnote="Opens a prefilled GitHub issue. Include: what you want, why it helps, and how you imagine it working."
+          >
+            <p class="text-sm text-ink">
+              Have an idea for a new action, setting, or workflow? We build the extension around
+              real requests — describe your use case and we will look into it.
+            </p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <Button variant="primary" onClick={() => window.open(CHROME_STORE_URL, '_blank')}>
+                Request in the extension support thread
+              </Button>
+              <Button onClick={() => window.open(GITHUB_FEATURE_URL, '_blank')}>
+                Request a feature on GitHub
               </Button>
             </div>
           </Section>
