@@ -39,7 +39,8 @@ export function parseAmount(
   // Prefer the number nearest the currency indicator so a stray leading number
   // ("iPhone 15 costs $999" -> 999) can't beat the priced amount.
   const dist = (m: RegExpMatchArray) => Math.abs((m.index ?? 0) - anchor)
-  const chosen = anchor < 0 ? tokens[0] : tokens.reduce((best, m) => (dist(m) < dist(best) ? m : best))
+  const chosen =
+    anchor < 0 ? tokens[0] : tokens.reduce((best, m) => (dist(m) < dist(best) ? m : best))
   const rawTok = chosen[0]
   const spaceGrouped = /\d[ _]\d/.test(rawTok)
   const amount = parseFloat(normalizeNumber(rawTok.replace(/[ _]/g, ''), spaceGrouped))
