@@ -5,3 +5,4 @@ dist/
 *.log
 test-results/
 playwright-report/
+/coverage
