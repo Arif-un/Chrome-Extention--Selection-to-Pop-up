@@ -1,10 +1,11 @@
 <div align="center">
 
+<!-- TODO(assets): swap in the new logo after it lands on master. -->
 <img src="src/assets/icons/select-logo-128.png" alt="Select to Action logo" width="96" height="96" />
 
 # Select to Action
 
-### Highlight text on any web page and act on it instantly — Search, Copy, Translate, Define, and Convert Currency, right where you are.
+### Highlight text on any web page and act on it instantly — Search, Copy, Translate, Define, Convert Currency, and ask AI, right where you are.
 
 No copy-pasting. No new tabs. No breaking your flow.
 
@@ -16,7 +17,8 @@ No copy-pasting. No new tabs. No breaking your flow.
 
 **[⬇️ Install from the Chrome Web Store](https://chromewebstore.google.com/detail/selection-to-popup/ehiiodgjjgibclbmfbiflepipnlmbkkc)**
 
-<img src="screenshots/Annotation-2020-04-14-203233.png" alt="Select to Action in action" width="640" />
+<!-- TODO(assets): replace with the refreshed hero screenshot after it lands on master. -->
+<img src="screenshots/ss1.png" alt="Select to Action in action" width="640" />
 
 </div>
 
@@ -33,21 +35,26 @@ Fast, private, open source, and free forever.
 
 ## 🚀 Features
 
-- 🔍 **Search** — send the selection to your favorite search engine in one click
+- 🔍 **Search** — send the selection to your favorite search engine in one click, or add several to choose from
 - 📋 **Copy** — grab text instantly with a one-tap copy
 - 🌐 **Translate** — read any language inline, powered by Google Translate, no site switching
 - 📖 **Dictionary** — instant definitions the moment you wonder what a word means
 - 💱 **Currency Converter** — convert prices on the fly with live exchange rates
-- 🛠️ **Custom Actions** — build your own buttons: open any URL, or run your own sandboxed script
+- 🤖 **Ask AI** — send the selection to **ChatGPT, Claude, Gemini, or Grok** and read the answer in a new tab, popup window, side panel, or in-page frame
+- 🛠️ **Custom Actions** — build your own buttons with custom icons: open any URL, or run your own sandboxed script
+- 🖐️ **Draggable handles** — fine-tune the highlighted range right on the page
+- 🪟 **Side panel** — keep results and AI answers open beside the page without losing your place
 - ⌨️ **Three ways to trigger** — on-selection popup, right-click **context menu**, or a **keyboard shortcut** (default `Alt+S`)
-- 🎨 **Yours to tune** — pick your default action, languages, currency pair, and search engines
+- 🎨 **Yours to tune** — pick your default action, languages, currency pair, search engines, and light/dark/system theme
 - ☁️ **Syncs across devices** — settings follow you through your browser account
 
 ## 🔒 Private by design
 
 No accounts. No tracking. No analytics. We run **no servers**. Your selected text
-is only sent to the service that performs the action you chose (translation,
-dictionary, or currency), and **nothing is ever stored or sold**. Read the full
+is only sent to the service that performs the action you chose — translation,
+dictionary, currency, or the AI provider you picked (ChatGPT, Claude, Gemini,
+Grok) — and **nothing is ever stored or sold**. AI host access is optional and
+requested only when you enable an AI action. Read the full
 [Privacy Policy](PRIVACY.md).
 
 ## 📦 Install
@@ -80,6 +87,7 @@ Load `dist/` via `chrome://extensions` → **Load unpacked** (enable Developer m
 APIs: unofficial Google Translate endpoint · [freedictionaryapi.com](https://freedictionaryapi.com) · [frankfurter.dev](https://frankfurter.dev) (currency).
 
 Releasing to the Web Store is automated — see [RELEASING.md](RELEASING.md).
+Release notes live in [CHANGELOG.md](CHANGELOG.md).
 
 ## 🛠️ Custom actions
 
@@ -103,4 +111,4 @@ others find it.
 
 ---
 
-<sub>Keywords: chrome extension, select text popup, translate selected text, inline translation, dictionary lookup extension, currency converter, right-click search, text selection tools, productivity chrome extension, Manifest V3, open source.</sub>
+<sub>Keywords: chrome extension, select text popup, translate selected text, inline translation, dictionary lookup extension, currency converter, right-click search, ask AI on selected text, ChatGPT extension, Claude, Gemini, Grok, AI text assistant, side panel, text selection tools, productivity chrome extension, Manifest V3, open source.</sub>
