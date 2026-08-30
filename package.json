@@ -1,7 +1,7 @@
 {
   "name": "selection-to-popup",
-  "version": "2.0.0",
-  "description": "Perform quick actions (Search, Copy, Translate, Dictionary, Currency, custom actions) on selected text.",
+  "version": "2.1.0",
+  "description": "Select text on any page to Search, Copy, Translate, Define, Convert currency, or send it to AI (ChatGPT, Claude, Gemini, Grok).",
   "type": "module",
   "license": "MIT",
   "author": "Muhammad Arif Uddin",
