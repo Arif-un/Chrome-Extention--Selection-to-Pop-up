@@ -12,9 +12,9 @@ export interface SelectionHandles {
 export const DEFAULT_HANDLES: SelectionHandles = {
   enabled: true,
   color: '#1a73e8', // mobile system-blue
-  opacity: 1,
+  opacity: 0.4,
   thickness: 2,
-  size: 1,
+  size: 1.1,
 }
 
 /** Bulb diameter in px at size = 1. */

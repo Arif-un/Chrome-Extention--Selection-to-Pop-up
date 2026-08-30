@@ -19,5 +19,5 @@ export function popupSize(mode: OpenMode): { w: number; h: number } | null {
 export function popupFeatures(w: number, h: number, screenW: number, screenH: number): string {
   const left = Math.max(0, Math.round((screenW - w) / 2))
   const top = Math.max(0, Math.round((screenH - h) / 2))
-  return `popup,width=${w},height=${h},left=${left},top=${top}`
+  return `popup,noopener,noreferrer,width=${w},height=${h},left=${left},top=${top}`
 }

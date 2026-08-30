@@ -13,11 +13,13 @@ describe('popupSize', () => {
 describe('popupFeatures', () => {
   it('centers the popup on the screen', () => {
     expect(popupFeatures(480, 640, 1920, 1080)).toBe(
-      'popup,width=480,height=640,left=720,top=220',
+      'popup,noopener,noreferrer,width=480,height=640,left=720,top=220',
     )
   })
   it('never produces negative offsets on small screens', () => {
-    expect(popupFeatures(1024, 768, 800, 600)).toBe('popup,width=1024,height=768,left=0,top=0')
+    expect(popupFeatures(1024, 768, 800, 600)).toBe(
+      'popup,noopener,noreferrer,width=1024,height=768,left=0,top=0',
+    )
   })
 })
 
