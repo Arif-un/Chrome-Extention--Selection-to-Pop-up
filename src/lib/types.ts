@@ -24,7 +24,7 @@ export interface CustomAction {
   open?: OpenMode
 }
 
-export type BuiltinKey = 'search' | 'copy' | 'translate' | 'dictionary' | 'currency'
+export type BuiltinKey = 'search' | 'copy' | 'translate' | 'dictionary' | 'currency' | 'count'
 
 import type { Appearance } from './appearance'
 import type { SelectionHandles } from './handles'
