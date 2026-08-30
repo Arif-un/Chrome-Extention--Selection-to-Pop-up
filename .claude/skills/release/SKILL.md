@@ -100,6 +100,12 @@ gh release create vX.Y.Z --title "vX.Y.Z" --notes-file /tmp/rel.md
 - **Publish gate:** auto-publish 400s until the Web Store **Privacy practices**
   tab is filled. CI cannot set it. This blocks the *publish* step only — the zip
   still uploads as a draft.
+- **No keyword list in the STORE description.** A `Keywords:` block in the store
+  listing gets rejected as "excessive keywords / Spam and Placement" (happened on
+  v2.1.0). Keep the store description natural prose. The `Keywords:` footer in
+  README.md is fine — that's GitHub SEO, not the store. If rejected for metadata,
+  fix the listing text in the dashboard and resubmit the SAME version — no re-tag,
+  the uploaded zip is unaffected.
 - **Lockfile:** repo is pnpm-only. Do NOT reintroduce `package-lock.json` — CI
   uses `pnpm install --frozen-lockfile`. If deps changed, run `pnpm install` and
   commit the updated `pnpm-lock.yaml`.
