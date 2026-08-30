@@ -22,6 +22,9 @@ export default defineManifest({
     },
   },
   options_page: 'src/options/index.html',
+  side_panel: {
+    default_path: 'src/sidepanel/index.html',
+  },
   background: {
     service_worker: 'src/background/service-worker.ts',
     type: 'module',
@@ -34,13 +37,20 @@ export default defineManifest({
       js: ['src/content/content-script.ts'],
     },
   ],
-  permissions: ['storage', 'contextMenus'],
+  permissions: ['storage', 'contextMenus', 'sidePanel', 'declarativeNetRequest'],
   host_permissions: [
     'https://translate.googleapis.com/*',
     'https://translate.google.com/*',
     'https://api.frankfurter.dev/*',
     'https://open.er-api.com/*',
     'https://freedictionaryapi.com/*',
+    // AI assistants — needed for the declarativeNetRequest sub-frame header rules
+    // (iframe / side-panel modes) so their pages can be embedded.
+    'https://chatgpt.com/*',
+    'https://chat.openai.com/*',
+    'https://claude.ai/*',
+    'https://gemini.google.com/*',
+    'https://grok.com/*',
   ],
   web_accessible_resources: [
     {
