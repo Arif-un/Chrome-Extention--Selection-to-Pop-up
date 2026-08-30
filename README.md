@@ -66,11 +66,11 @@ Or load it unpacked for development (see below).
 Built on a modern stack: **Manifest V3 · Vite 8 · Preact · TypeScript · Tailwind CSS v4**, bundled with [@crxjs/vite-plugin](https://crxjs.dev).
 
 ```bash
-npm install
-npm run dev        # HMR dev build in dist/
-npm run build      # production build to dist/
-npm run check      # format + lint + test + build
-npm run zip        # build + package selection-to-popup.zip for the Web Store
+pnpm install
+pnpm dev         # HMR dev build in dist/
+pnpm build       # production build to dist/
+pnpm check       # format + lint + test + build
+pnpm zip         # build + package selection-to-popup.zip for the Web Store
 ```
 
 Load `dist/` via `chrome://extensions` → **Load unpacked** (enable Developer mode).
