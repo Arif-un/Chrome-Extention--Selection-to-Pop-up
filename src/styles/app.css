@@ -2,9 +2,67 @@
 @import './tooltip-theme.css';
 @source '../**/*.{ts,tsx,html}';
 
-:root {
-  color-scheme: dark;
+/* Class-based dark mode: JS toggles `.dark` on <html> (see lib/theme.ts). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* macOS-native semantic palette. The --ui-* custom properties flip under .dark;
+   Tailwind color tokens below just point at them, so `bg-surface`, `text-ink`,
+   `border-line`, `accent-accent` etc. are theme-aware everywhere. */
+@theme {
+  --color-canvas: var(--ui-canvas);
+  --color-surface: var(--ui-surface);
+  --color-surface-hover: var(--ui-surface-hover);
+  --color-line: var(--ui-line);
+  --color-ink: var(--ui-ink);
+  --color-muted: var(--ui-muted);
+  --color-accent: var(--ui-accent);
+  --color-accent-hover: var(--ui-accent-hover);
+  --color-danger: var(--ui-danger);
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --radius-xl: 1.35rem;
+  --radius-lg: 0.85rem;
+  --radius-md: 0.65rem;
+  --radius-sm: 0.45rem;
 }
+
+:root {
+  color-scheme: light;
+  --ui-canvas: #f5f5f7;
+  --ui-surface: #ffffff;
+  --ui-surface-hover: #f0f0f2;
+  --ui-line: #d2d2d7;
+  --ui-ink: #1d1d1f;
+  --ui-muted: #6e6e73;
+  --ui-accent: #007aff;
+  --ui-accent-hover: #0a6fe0;
+  --ui-danger: #ff3b30;
+}
+.dark {
+  color-scheme: dark;
+  --ui-canvas: #1c1c1e;
+  --ui-surface: #2c2c2e;
+  --ui-surface-hover: #3a3a3c;
+  --ui-line: #3a3a3c;
+  --ui-ink: #f5f5f7;
+  --ui-muted: #98989d;
+  --ui-accent: #007aff;
+  --ui-accent-hover: #3395ff;
+  --ui-danger: #ff453a;
+}
+
+/* Enforce squircle (superellipse) corners on the popup/options pages. Native CSS
+   corner-shape (Chrome 139+) only affects elements with a border-radius, so this
+   is a no-op on square elements. NOT imported into the shadow tooltip. */
+*,
+*::before,
+*::after {
+  corner-shape: squircle;
+}
+
 body {
   margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  background: var(--ui-canvas);
+  color: var(--ui-ink);
 }

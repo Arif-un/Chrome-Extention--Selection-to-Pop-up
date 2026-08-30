@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="src/assets/icons/select-logo-128.png" alt="Selection to PopUp logo" width="96" height="96" />
+<img src="src/assets/icons/select-logo-128.png" alt="Select to Action logo" width="96" height="96" />
 
-# Selection to PopUp
+# Select to Action
 
 ### Highlight text on any web page and act on it instantly — Search, Copy, Translate, Define, and Convert Currency, right where you are.
 
@@ -16,17 +16,17 @@ No copy-pasting. No new tabs. No breaking your flow.
 
 **[⬇️ Install from the Chrome Web Store](https://chromewebstore.google.com/detail/selection-to-popup/ehiiodgjjgibclbmfbiflepipnlmbkkc)**
 
-<img src="screenshots/Annotation-2020-04-14-203233.png" alt="Selection to PopUp in action" width="640" />
+<img src="screenshots/Annotation-2020-04-14-203233.png" alt="Select to Action in action" width="640" />
 
 </div>
 
 ---
 
-## ✨ Why Selection to PopUp?
+## ✨ Why Select to Action?
 
 Every day you select text to look something up — a word, a price, a phrase in
-another language. Normally that means copy, open a tab, paste, wait. **Selection
-to PopUp** collapses all of that into a single click. Select text and a sleek
+another language. Normally that means copy, open a tab, paste, wait. **Select
+to Action** collapses all of that into a single click. Select text and a sleek
 popup appears exactly where you are, with the action you need.
 
 Fast, private, open source, and free forever.

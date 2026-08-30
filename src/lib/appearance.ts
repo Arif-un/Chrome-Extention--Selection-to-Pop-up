@@ -2,6 +2,7 @@ import type { JSX } from 'preact'
 
 export type Anchor = 'auto' | 'above' | 'below'
 export type PresetName = 'dark' | 'light' | 'glass' | 'custom'
+export type CornerShape = 'round' | 'squircle'
 
 export interface Appearance {
   preset: PresetName
@@ -11,7 +12,9 @@ export interface Appearance {
   bgOpacity: number // 0..1
   blur: number // px (0 = off)
   radius: number // px
+  cornerShape: CornerShape // round arc vs squircle (superellipse) corners
   scale: number // 0.8..1.6 multiplier
+  maxWidth: number // px, panel max width (actions wrap beyond it)
   border: boolean
   borderColor: string // hex
   shadow: boolean
@@ -26,26 +29,30 @@ type StyleFields = Omit<Appearance, 'preset' | 'anchor' | 'offsetX' | 'offsetY'>
 export const PRESETS: Record<Exclude<PresetName, 'custom'>, StyleFields> = {
   dark: {
     fg: '#e2e8f0',
-    accent: '#0284c7',
+    accent: '#2e74ff',
     bg: '#1e293b',
-    bgOpacity: 0.96,
+    bgOpacity: 0.78,
     blur: 8,
-    radius: 8,
+    radius: 20,
+    cornerShape: 'round',
     scale: 1,
+    maxWidth: 384,
     border: true,
     borderColor: '#334155',
     shadow: true,
   },
   light: {
-    fg: '#0f172a',
-    accent: '#0284c7',
+    fg: '#030407',
+    accent: '#2e58ff',
     bg: '#ffffff',
-    bgOpacity: 0.98,
-    blur: 6,
-    radius: 8,
-    scale: 1,
+    bgOpacity: 0.35,
+    blur: 7,
+    radius: 23,
+    cornerShape: 'round',
+    scale: 0.85,
+    maxWidth: 384,
     border: true,
-    borderColor: '#e2e8f0',
+    borderColor: '#bababa',
     shadow: true,
   },
   glass: {
@@ -55,7 +62,9 @@ export const PRESETS: Record<Exclude<PresetName, 'custom'>, StyleFields> = {
     bgOpacity: 0.35,
     blur: 16,
     radius: 14,
+    cornerShape: 'squircle',
     scale: 1,
+    maxWidth: 384,
     border: true,
     borderColor: '#ffffff',
     shadow: true,
@@ -70,7 +79,7 @@ export const DEFAULT_APPEARANCE: Appearance = {
   offsetY: 0,
 }
 
-function hexToRgba(hex: string, alpha: number): string {
+export function hexToRgba(hex: string, alpha: number): string {
   const m = hex.replace('#', '')
   const n =
     m.length === 3
@@ -95,11 +104,13 @@ export function appearanceStyle(a: Appearance): JSX.CSSProperties {
     '--stp-accent-fg': '#ffffff',
     '--stp-bg': hexToRgba(a.bg, a.bgOpacity),
     '--stp-radius': `${a.radius}px`,
+    '--stp-corner-shape': a.cornerShape,
     // Buttons nest inside the panel: inner radius = panel radius minus the 4px
     // panel padding, so corners stay concentric at any roundness.
     '--stp-radius-inner': `${Math.max(0, a.radius - 4)}px`,
     '--stp-border': a.border ? `1px solid ${a.borderColor}` : 'none',
     '--stp-shadow': a.shadow ? '0 10px 30px rgba(0, 0, 0, 0.35)' : 'none',
+    maxWidth: `${a.maxWidth}px`,
     // Set backdrop-filter inline: the CSS transformer (lightningcss) drops the
     // unprefixed property from the stylesheet. Inline styles bypass it, so both
     // the standard and -webkit- forms reach the DOM.

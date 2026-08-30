@@ -1,6 +1,6 @@
-import type { Settings } from './types'
+import type { BuiltinKey } from './types'
 
-export type BuiltinKey = keyof Settings['builtins']
+export type { BuiltinKey }
 
 /** Single source of truth for built-in action labels (menu, popup, options, tooltip). */
 export const BUILTIN_LABELS: Record<BuiltinKey, string> = {
@@ -9,6 +9,7 @@ export const BUILTIN_LABELS: Record<BuiltinKey, string> = {
   translate: 'Translate',
   dictionary: 'Dictionary',
   currency: 'Currency',
+  count: 'Count',
 }
 
 export const BUILTIN_KEYS = Object.keys(BUILTIN_LABELS) as BuiltinKey[]

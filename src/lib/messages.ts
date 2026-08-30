@@ -35,6 +35,12 @@ export type Request =
   | { type: 'TRANSLATE'; text: string; targetLang?: string }
   | { type: 'DICTIONARY'; word: string }
   | { type: 'CURRENCY'; text: string; base?: string; target?: string }
+  | {
+      type: 'OPEN_AI'
+      url: string
+      mode: 'tab' | 'window' | 'sidebar'
+      win?: { w: number; h: number }
+    }
 
 // background -> content
 export type Command =

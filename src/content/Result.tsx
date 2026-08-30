@@ -1,5 +1,6 @@
 import { Select } from '../components/Select'
 import { LANGS, CURRENCIES } from '../lib/langs'
+import { googleTranslateUrl } from '../lib/translate-url'
 import { store } from './store'
 import type { ResultView } from './store'
 
@@ -20,6 +21,15 @@ export function Result({ result, translateTo }: { result: ResultView; translateT
           </Select>
         </div>
         <div class="text-sm leading-snug">{d.translation}</div>
+        <a
+          class="stp-accent-text inline-block text-[11px] hover:underline"
+          href={googleTranslateUrl(store.getSnapshot().text, translateTo)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          Open in Google Translate
+        </a>
       </div>
     )
   }
@@ -73,6 +83,27 @@ export function Result({ result, translateTo }: { result: ResultView; translateT
             </li>
           ))}
         </ol>
+      </div>
+    )
+  }
+  if (result.kind === 'count') {
+    const d = result.data
+    const rows: [string, number][] = [
+      ['Words', d.words],
+      ['Letters', d.letters],
+      ['Characters', d.chars],
+      ['Characters (no spaces)', d.charsNoSpaces],
+      ['Lines', d.lines],
+      ['Sentences', d.sentences],
+    ]
+    return (
+      <div class="space-y-0.5">
+        {rows.map(([label, n]) => (
+          <div key={label} class="flex items-baseline justify-between gap-4 text-sm">
+            <span class="stp-muted text-[11px]">{label}</span>
+            <span class="font-semibold tabular-nums">{n.toLocaleString()}</span>
+          </div>
+        ))}
       </div>
     )
   }

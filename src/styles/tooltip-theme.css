@@ -2,6 +2,35 @@
    the user's Appearance settings (see lib/appearance.ts). Shared by the in-page
    tooltip (shadow DOM) and the options live preview. */
 
+/* Shadow DOM blocks page selectors, but inheritable properties (font, color,
+   line-height, letter/word-spacing, text-transform, etc.) still cross the
+   boundary into :host and cascade down — that's how pages end up "overriding"
+   the popup. Reset them to sane, fixed values so nothing leaks in. Non-shadow
+   contexts (options preview) don't match :host, so this is a no-op there. */
+:host {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.5;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-transform: none;
+  text-align: left;
+  text-indent: 0;
+  white-space: normal;
+  direction: ltr;
+  text-shadow: none;
+}
+
 .stp-panel {
   /* Chromium quirk: backdrop-filter renders nothing when the same element is
      box-sizing:border-box (which Tailwind preflight sets globally). Force
@@ -11,6 +40,7 @@
   background: var(--stp-bg);
   border: var(--stp-border);
   border-radius: var(--stp-radius);
+  corner-shape: var(--stp-corner-shape, round);
   box-shadow: var(--stp-shadow);
   /* backdrop-filter is set inline (see appearanceStyle) — lightningcss strips
      the unprefixed property when it lives in the stylesheet. */
@@ -19,6 +49,7 @@
 .stp-btn {
   color: var(--stp-fg);
   border-radius: var(--stp-radius-inner);
+  corner-shape: var(--stp-corner-shape, round);
   transition:
     background-color 0.12s ease,
     color 0.12s ease;
@@ -29,6 +60,35 @@
 }
 .stp-btn-ok {
   color: #22c55e;
+}
+
+@keyframes stp-expand {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.stp-expand {
+  animation: stp-expand 0.12s ease-out;
+}
+
+/* Overflow actions: animate width + opacity both ways (expand/collapse). Kept
+   mounted; max-width 2rem = the h-8/w-8 button, collapsing to 0 when closed. */
+.stp-collapse {
+  max-width: 2rem;
+  opacity: 1;
+  overflow: hidden;
+  transition:
+    max-width 0.15s ease,
+    opacity 0.15s ease;
+}
+.stp-collapse-closed {
+  max-width: 0;
+  opacity: 0;
 }
 
 .stp-divider {

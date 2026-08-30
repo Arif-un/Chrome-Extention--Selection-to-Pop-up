@@ -1,8 +1,8 @@
-# Privacy Policy — Selection to PopUp
+# Privacy Policy — Select to Action
 
 Last updated: 2026-08-24
 
-Selection to PopUp is a browser extension that lets you run quick actions
+Select to Action is a browser extension that lets you run quick actions
 (Search, Copy, Translate, Dictionary, Currency conversion, and your own custom
 actions) on text you select on a web page. This policy explains what the
 extension does and does not do with your data.
