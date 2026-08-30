@@ -4,6 +4,12 @@ export const CHROME_STORE_URL =
   'https://chromewebstore.google.com/detail/selection-to-popup/ehiiodgjjgibclbmfbiflepipnlmbkkc/support'
 export const GITHUB_ISSUES_URL =
   'https://github.com/Arif-un/Chrome-Extention--Selection-to-Pop-up/issues'
+/** Prefilled "new issue" form for feature requests (labels + a request template). */
+export const GITHUB_FEATURE_URL =
+  'https://github.com/Arif-un/Chrome-Extention--Selection-to-Pop-up/issues/new?labels=enhancement&title=%5BFeature%5D+&body=' +
+  encodeURIComponent(
+    'What would you like to be able to do?\n\n\nWhy is it useful / what problem does it solve?\n\n\nHow do you imagine it working?\n',
+  )
 
 /** Friendly one-liners, shown one at random each time the popup/options opens. */
 export const FEEDBACK_MESSAGES = [

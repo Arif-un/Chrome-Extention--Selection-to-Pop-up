@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   CHROME_STORE_URL,
   GITHUB_ISSUES_URL,
+  GITHUB_FEATURE_URL,
   FEEDBACK_MESSAGES,
   randomFeedbackMessage,
 } from '../src/lib/feedback'
@@ -12,6 +13,11 @@ describe('feedback links', () => {
   it('point at the store support page and the github issues page', () => {
     expect(CHROME_STORE_URL).toMatch(/^https:\/\/chromewebstore\.google\.com\//)
     expect(GITHUB_ISSUES_URL).toMatch(/^https:\/\/github\.com\/.+\/issues$/)
+  })
+
+  it('feature request opens a prefilled new-issue form with the enhancement label', () => {
+    expect(GITHUB_FEATURE_URL).toMatch(/^https:\/\/github\.com\/.+\/issues\/new\?/)
+    expect(GITHUB_FEATURE_URL).toContain('labels=enhancement')
   })
 })
 
