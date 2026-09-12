@@ -1,6 +1,6 @@
 {
   "name": "selection-to-popup",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Select text on any page to Search, Copy, Translate, Define, Convert currency, or send it to AI (ChatGPT, Claude, Gemini, Grok).",
   "type": "module",
   "packageManager": "pnpm@10.33.0",

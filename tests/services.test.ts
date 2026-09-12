@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { convert } from '../src/services/currency'
 import { translate } from '../src/services/translate'
 import { lookup } from '../src/services/dictionary'
+import { langName } from '../src/lib/langs'
 
 function mockFetch(impl: (url: string) => { ok?: boolean; status?: number; json: unknown }) {
   vi.stubGlobal(
@@ -74,17 +75,67 @@ describe('convert', () => {
 })
 
 describe('translate', () => {
-  it('joins multi-segment translations and reports detected language', async () => {
-    mockFetch(() => ({
-      json: [[['Hello '], ['world']], null, 'es'],
-    }))
+  it('uses the keyed PA endpoint and reports detected language', async () => {
+    const spy = vi.fn((url: string) => {
+      expect(url).toContain('translate-pa.googleapis.com/v1/translate')
+      return { json: { translation: 'Hello world', sourceLanguage: 'es' } }
+    })
+    mockFetch(spy)
     const r = await translate('Hola mundo', 'en')
     expect(r).toEqual({ from: 'Spanish', to: 'English', source: 'Hola mundo', translation: 'Hello world' })
+    expect(spy).toHaveBeenCalledTimes(1) // no fallback when PA succeeds
   })
 
-  it('throws on a non-ok response', async () => {
+  it('falls back to the legacy endpoint when PA errors (e.g. 429)', async () => {
+    const spy = vi.fn((url: string) => {
+      if (url.includes('translate-pa')) return { ok: false, status: 429, json: null }
+      expect(url).toContain('/translate_a/single')
+      return { json: [[['Hello '], ['world']], null, 'es'] }
+    })
+    mockFetch(spy)
+    const r = await translate('Hola mundo', 'en')
+    expect(r).toEqual({ from: 'Spanish', to: 'English', source: 'Hola mundo', translation: 'Hello world' })
+    expect(spy).toHaveBeenCalledTimes(2) // PA then legacy
+  })
+
+  it('falls back when PA returns an unexpected shape', async () => {
+    const spy = vi.fn((url: string) => {
+      if (url.includes('translate-pa')) return { json: { notTranslation: true } }
+      return { json: [[['ok']], null, 'fr'] }
+    })
+    mockFetch(spy)
+    const r = await translate('bonjour', 'en')
+    expect(r.translation).toBe('ok')
+    expect(spy).toHaveBeenCalledTimes(2)
+  })
+
+  it('defaults detected language to auto when PA omits sourceLanguage', async () => {
+    mockFetch(() => ({ json: { translation: 'hi' } }))
+    const r = await translate('salut', 'en')
+    expect(r.from).toBe(langName('auto'))
+    expect(r.translation).toBe('hi')
+  })
+
+  it('defaults detected language to auto when the legacy response omits it', async () => {
+    mockFetch((url) => {
+      if (url.includes('translate-pa')) return { ok: false, status: 429, json: null }
+      return { json: [[['hi']]] }
+    })
+    const r = await translate('salut', 'en')
+    expect(r.from).toBe(langName('auto'))
+  })
+
+  it('throws when both PA and the legacy fallback fail', async () => {
     mockFetch(() => ({ ok: false, status: 500, json: null }))
     await expect(translate('x', 'en')).rejects.toThrow(/Translate failed \(500\)/)
+  })
+
+  it('traces which API is used in dev mode', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {})
+    mockFetch(() => ({ json: { translation: 'hi', sourceLanguage: 'en' } }))
+    await translate('hi', 'en')
+    expect(info).toHaveBeenCalledWith('[translate] via translate-pa (keyed)')
+    info.mockRestore()
   })
 })
 

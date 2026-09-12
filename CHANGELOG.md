@@ -4,6 +4,16 @@ All notable changes to **Select to Action** are documented here. This project
 follows [Semantic Versioning](https://semver.org) and the
 [Keep a Changelog](https://keepachangelog.com) format.
 
+## [2.1.1] - 2026-09-13
+
+### Fixed
+
+- **Translate no longer fails with intermittent 429 errors.** Translation now
+  uses Google's keyed endpoint (the one the official Google Translate extension
+  uses), which is not subject to the anonymous per-IP rate limit that caused the
+  errors. If it is ever unavailable, translation automatically falls back to the
+  previous endpoint.
+
 ## [2.1.0] - 2026-08-31
 
 ### Added
@@ -54,5 +64,6 @@ follows [Semantic Versioning](https://semver.org) and the
   actions (URL templates and sandboxed JS).
 - Automatic migration of v1.x settings on first run.
 
+[2.1.1]: https://github.com/Arif-un/Chrome-Extention--Selection-to-Pop-up/releases/tag/v2.1.1
 [2.1.0]: https://github.com/Arif-un/Chrome-Extention--Selection-to-Pop-up/releases/tag/v2.1.0
 [2.0.0]: https://github.com/Arif-un/Chrome-Extention--Selection-to-Pop-up/releases/tag/v2.0.0
